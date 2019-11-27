@@ -1,0 +1,24 @@
+.InputfieldImagePicker img {
+    cursor: pointer;
+}
+
+.InputfieldImagePicker .uk-thumbnav li {
+    flex: 0 0 auto;
+    margin-bottom: 20px;
+}
+
+.InputfieldImagePicker .uk-panel {
+    border: 1px solid #d9e1ea;
+    padding: 20px;
+    min-width: 100px;
+    display: inline-block;
+    position: relative;
+}
+
+.InputfieldImagePicker .uk-panel span {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    cursor: pointer;
+}
+

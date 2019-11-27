@@ -1,0 +1,216 @@
+<?php namespace ProcessWire;
+
+use ProcessWire\IconFile;
+
+/**
+ * Fieldtype 'Image Picker' stores a file (image) name selected in the associated
+ * Inputfield.
+ * The image can be rendered in template files
+ * In case of SVG the file contents can be rendered inline
+ *
+ * ©2019 Gerhard Sitzmann
+ *
+ * ProcessWire 3.x
+ * Copyright (C) 2010 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeImagePicker extends FieldtypeText {
+    
+
+	/**
+	 * Return an array of module information
+	 *
+	 * @return array
+	 */
+	public static function getModuleInfo() {
+		return array(
+			'title' => __('Image Picker'),
+			'version' => 100,
+			'summary' => __('Fieldtype that stores the name of an image file.'),
+			'author' => 'Gerhard Sitzmann',
+			'href' => '',
+			'installs' => 'InputfieldImagePicker',
+            'requires' => [
+                'PHP>=7.1.0',
+                'ProcessWire>=3.x'
+            ],
+                );
+	}
+
+	/**
+	 * This method is called when all system classes are loaded and ready for API usage
+	 *
+	 */
+	public function init() {
+		parent::init();
+		$this->allowTextFormatters(false);
+        include($this->wire('config')->paths->{$this->className} . 'IconFile.php');
+	}
+
+	/**
+	 * Sanitize value for storage
+	 *
+	 */
+	public function sanitizeValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
+		$filePath = $this->getFilepath($field, $value); // throws Exception if file does not exist
+		return $value;
+	}
+
+	/**
+	 * Format value for output
+	 * @param \ProcessWire\Page $page
+	 * @param \ProcessWire\Field $field
+     * @param string $value
+     * @return \stdClass holding string path, string url and string|null content for inlining svg (content only for svg)   
+     * @throws \ProcessWire\WireException
+	 */
+	public function ___formatValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
+        // if ($field->outputFormat === 7) return $this->sleepValue($page, $field, $value);
+        $out = new IconFile;
+        $out->path = $this->getFilepath($field, $value);        
+        $out->url = $this->getFileURL($field, $value);
+        $out->content = $this->getFileContents($field, $value);       
+		return $out;
+	}
+
+	/**
+	 * Return full disk path to file
+	 * @param \ProcessWire\Field $field
+     * @param string $value
+     * @return string 
+     * @throws \ProcessWire\WireException
+	 */
+	public function getFilepath(\ProcessWire\Field $field, $value) {
+		$filePath = $this->config->paths->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
+		if(file_exists($filePath)) {
+            return $filePath;
+        } else {
+            throw new \ProcessWire\WireException("File does not exist: {$filePath}");
+        }
+	}
+
+	/**
+	 * Return file URL
+	 * @param \ProcessWire\Field $field
+     * @param string $value
+     * @return string 
+	 */
+	public function getFileUrl(\ProcessWire\Field $field, $value) {
+		return $this->config->urls->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
+	}
+
+	/**
+	 * Return file extension
+     * @param string $value
+     * @return string 
+	 */
+	public function getFileExtension($value) {
+		return pathinfo($value, PATHINFO_EXTENSION);
+	}
+
+	/**
+	 * Return file mime type
+	 * @param \ProcessWire\Field $field
+     * @param string $value
+     * @return string 
+	 */
+	public function getFileMimetype(\ProcessWire\Field $field, $value) {
+		return mime_content_type($this->getFilepath($field, $value));
+	}
+
+	/**
+	 * Return file contents (only for svg)
+	 * @param \ProcessWire\Field $field
+     * @param string $value
+     * @return mixed string|null 
+	 */
+	public function getFileContents(\ProcessWire\Field $field, $value) {
+
+        $mimeTypes = ['image/svg', 'image/svg+xml'];
+        if( strtolower($this->getFileExtension($value)) !== 'svg' || !in_array($this->getFileMimetype($field, $value), $mimeTypes) ) {
+            return null;
+        } else {
+            return file_get_contents($this->getFilepath($field, $value));
+        }
+	}
+
+
+    /**
+	 * Return new instance of the Inputfield associated with this Fieldtype
+	 *
+	 * @param \ProcessWire\Page $page
+	 * @param \ProcessWire\Field $field
+	 * @return Inputfield
+	 *
+	 */
+	public function getInputfield(\ProcessWire\Page $page, \ProcessWire\Field $field) {
+		$inputfield = $this->modules->get('InputfieldImagePicker');
+		$inputfield->set('folderPath', $field->folderPath);
+		$inputfield->set('previewWidth', $field->previewWidth);
+		$inputfield->set('thumbWidth', $field->thumbWidth);
+		return $inputfield;
+	}
+
+	/**
+	 * Get the inputfield used for configuration of this Fieldtype.
+	 *
+	 * @param Field $field
+	 * @return InputfieldWrapper
+	 *
+	 */
+	public function ___getConfigInputfields(Field $field) {
+		$error = false;
+		if ($field->folderPath) {
+			$folder = $this->config->paths->templates . ltrim($field->folderPath, '/');
+			if (!is_dir($folder)) {
+				$path = $this->config->urls->templates . ltrim($field->folderPath, '/');
+				$error = sprintf($this->_("Folder %s doesn't exist."), $path);
+			}
+		}
+
+		$inputfields = parent::___getConfigInputfields($field);
+
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'folderPath');
+		$f->label = $this->_("The folder containing the files.");
+		$f->attr('value', $field->folderPath);
+		$f->description =
+			sprintf($this->_('A relative path relative to the **%s** folder.'), $this->config->urls->templates) .
+			' ' .
+			sprintf($this->_('Leave blank for the **%s** folder.'), $this->config->urls->templates);
+		$f->notes =
+			$this->_("When the files are located in /site/templates/images/icons/, type: images/icons/");
+        $f->getErrors(true);
+        if ($error) $f->error($error);
+        $inputfields->add($f);
+
+        $f = $this->modules->get('InputfieldText');
+        $f->attr('name', 'previewWidth');
+        $f->label = $this->_("Width of the selected image thumbnail in px");
+        $f->attr('value', $field->previewWidth);
+        $inputfields->add($f);
+
+        $f = $this->modules->get('InputfieldText');
+        $f->attr('name', 'thumbWidth');
+        $f->label = $this->_("Width of the preview thumbnail images in px");
+        $f->attr('value', $field->thumbWidth);
+        $inputfields->add($f);
+
+        $f = $this->modules->get('InputfieldMarkup');
+        $f->attr('name', 'FieldtypeImagePicker_instructions');
+        $f->label = $this->_("How to use this field in a template");
+        $f->attr('value', '<code>&lt;img src="&lt;?= $page->' . $field->name . '->url ?&gt;"&gt; // renders the image<br>
+        $page->' . $field->name . '->path // returns the full path on the disk<br>
+        $page->' . $field->name . '->content // returns the text content for inlining SVG (works only with SVG images)<br>
+        </code>');
+        $inputfields->add($f);
+ 
+        return $inputfields;
+    }
+    
+}

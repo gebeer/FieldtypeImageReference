@@ -1,0 +1,120 @@
+<?php namespace ProcessWire;
+
+/**
+ * Inputfield 'Image Picker' provides a means for selectin files (images) from a predefined folder
+ * from disk. Per Inputfield you can set a folder to list from.
+ *
+ * ©2019 Gerhard Sitzmann
+ *
+ * ProcessWire 3.x
+ * Copyright (C) 2010 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class InputfieldImagePicker extends InputfieldText {
+
+	/**
+	 * Return an array of module information
+	 *
+	 * @return array
+	 */
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Image Picker',
+			'version' => 100,
+			'summary' => __('Inputfield to select a file from a folder.'),
+			'author' => 'Gerhard Sitzmann',
+			'href' => '',
+			'requires' => array(
+				'FieldtypeImagePicker',
+                'PHP>=7.1.0',
+                'ProcessWire>=3.x'
+			)
+		);
+	}
+
+	/**
+	 * Return the completed output of Inputfield select file
+	 *
+	 * @return string
+	 *
+	 */
+	public function ___render() {
+
+        $folderPath = trim(trim($this->folderPath), '/') . "/";
+		$folder = $this->config->paths->templates . $folderPath;
+        $baseUrl = $this->config->urls->templates . $folderPath;
+
+		if(!is_dir($folder)) {
+            $this->error($this->_("Path to files is invalid"));
+            return;
+        } 
+        
+        $out = '';
+        $blankSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mN89x8AAuEB74Y0o2cAAAAASUVORK5CYII=';
+        $icon = $this->hasPage->icon;
+        $url = ($icon) ? $baseUrl . $icon : $blankSrc;
+        $previewWidth = ($this->previewWidth) ? $this->previewWidth : 75;
+        $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 75;
+        $out .= "<div class='uk-panel uk-panel-box uk-margin-bottom'>
+        <span uk-icon='icon: trash' uk-tooltip='title: Remove Image'></span>
+        <img src='{$url}' style='width: {$previewWidth}px; max-width: {$previewWidth}px' data-src='{$blankSrc}'>
+        <div class='uk-thumbnail-caption'>{$icon}</div>
+        </div>";
+
+        $files = $this->wire('files')->find($folder, array('returnRelative' => true));
+        if(!count($files)) {
+            $markup = '<b>' . $this->_('There are no images. Upload images to') . ' ' . $baseUrl . '</b>';
+        } else {
+            $markup = '<ul class="uk-thumbnav uk-grid-width-1-6">';
+            foreach($files as $f) {
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'><img style='max-width: {$thumbWidth}px' data-filename='{$f}' src='{$baseUrl}{$f}'></li>";
+            }
+            $markup .= '</ul>';
+            $markup .= '<input type="hidden" name="' . $this->name . '" id="' . $this->name . '">';
+        }
+        $markupField = $this->wire('modules')->get('InputfieldMarkup');
+        $markupField->label = $this->_('Choose an image');
+        $markupField->value = $markup;
+        
+        $wrapper = new InputfieldWrapper;
+        $wrapper->label = $this->_('Choose an image');
+        if($icon) $wrapper->collapsed(1); // collapse when Icon already chosen
+        $wrapper->add($markupField);
+
+        $out .= $wrapper->render();
+
+		return $out;
+	}
+
+	/**
+	 * Get any custom configuration fields for Inputfield image picker
+	 *
+	 * @return InputfieldWrapper
+	 *
+	 */
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$f = $inputfields->get('stripTags');
+		if($f) $inputfields->remove($f);
+
+		$f = $inputfields->get('size');
+		if($f) $inputfields->remove($f);
+
+		$f = $inputfields->get('maxlength');
+		if($f) $inputfields->remove($f);
+
+		$f = $inputfields->get('placeholder');
+		if($f) $inputfields->remove($f);
+
+		$f = $inputfields->get('pattern');
+		if($f) $inputfields->remove($f);
+
+		return $inputfields;
+	}
+}
