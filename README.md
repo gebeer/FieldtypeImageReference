@@ -26,3 +26,6 @@ $page->fieldname->path
 // render the text content for inlining SVG (works only with SVG images)
 $page->fieldname->content
 ```
+
+### Credits
+This module was developed based on [Martijn Geerts FieldTypeSelect module](https://github.com/Da-Fecto/FieldtypeSelectFile)
