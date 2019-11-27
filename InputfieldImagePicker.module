@@ -15,7 +15,7 @@
  *
  */
 
-class InputfieldImagePicker extends InputfieldText {
+class InputfieldImagePicker extends Inputfield {
 
 	/**
 	 * Return an array of module information
@@ -38,7 +38,7 @@ class InputfieldImagePicker extends InputfieldText {
 	}
 
 	/**
-	 * Return the completed output of Inputfield select file
+	 * Return the completed output of Inputfield image picker
 	 *
 	 * @return string
 	 *
@@ -91,30 +91,4 @@ class InputfieldImagePicker extends InputfieldText {
 		return $out;
 	}
 
-	/**
-	 * Get any custom configuration fields for Inputfield image picker
-	 *
-	 * @return InputfieldWrapper
-	 *
-	 */
-	public function ___getConfigInputfields() {
-		$inputfields = parent::___getConfigInputfields();
-
-		$f = $inputfields->get('stripTags');
-		if($f) $inputfields->remove($f);
-
-		$f = $inputfields->get('size');
-		if($f) $inputfields->remove($f);
-
-		$f = $inputfields->get('maxlength');
-		if($f) $inputfields->remove($f);
-
-		$f = $inputfields->get('placeholder');
-		if($f) $inputfields->remove($f);
-
-		$f = $inputfields->get('pattern');
-		if($f) $inputfields->remove($f);
-
-		return $inputfields;
-	}
 }
