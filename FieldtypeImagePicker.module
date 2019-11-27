@@ -1,6 +1,6 @@
 <?php namespace ProcessWire;
 
-use ProcessWire\IconFile;
+use ProcessWire\ImagePickerFile;
 
 /**
  * Fieldtype 'Image Picker' stores a file (image) name selected in the associated
@@ -49,7 +49,7 @@ class FieldtypeImagePicker extends FieldtypeText {
 	public function init() {
 		parent::init();
 		$this->allowTextFormatters(false);
-        include($this->wire('config')->paths->{$this->className} . 'IconFile.php');
+        include($this->wire('config')->paths->{$this->className} . 'ImagePickerFile.php');
 	}
 
 	/**

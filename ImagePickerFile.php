@@ -1,12 +1,12 @@
 <?php namespace ProcessWire;
 
 /**
- * Class IconFile 
+ * Class ImagePickerFile 
  * 
- * Holds information about an icon file
+ * Holds information about an image file
  */
 
-class IconFile extends \stdClass {
+class ImagePickerFile extends \stdClass {
 
 	/**
 	 * Full file path on disk
