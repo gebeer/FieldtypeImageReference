@@ -29,4 +29,4 @@ $page->fieldname->content
 ```
 
 ### Credits
-This module was developed based on [Martijn Geerts' FieldTypeSelect module](https://github.com/Da-Fecto/FieldtypeSelectFile)
+This module was developed based on [Martijn Geerts' FieldTypeSelectFile module](https://github.com/Da-Fecto/FieldtypeSelectFile)
