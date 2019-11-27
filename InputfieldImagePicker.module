@@ -1,8 +1,8 @@
 <?php namespace ProcessWire;
 
 /**
- * Inputfield 'Image Picker' provides a means for selectin files (images) from a predefined folder
- * from disk. Per Inputfield you can set a folder to list from.
+ * Inputfield 'Image Picker' provides a means for selecting files (images) from a predefined folder
+ * on teh server. Per Inputfield you can set a folder to list from.
  *
  * ©2019 Gerhard Sitzmann
  *
@@ -80,10 +80,9 @@ class InputfieldImagePicker extends Inputfield {
         $markupField = $this->wire('modules')->get('InputfieldMarkup');
         $markupField->label = $this->_('Choose an image');
         $markupField->value = $markup;
+        if($icon) $markupField->collapsed(1); // collapse when Icon already chosen
         
         $wrapper = new InputfieldWrapper;
-        $wrapper->label = $this->_('Choose an image');
-        if($icon) $wrapper->collapsed(1); // collapse when Icon already chosen
         $wrapper->add($markupField);
 
         $out .= $wrapper->render();
