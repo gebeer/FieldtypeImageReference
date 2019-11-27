@@ -7,7 +7,7 @@
 * The folder containing the files.
     - A relative path relative to the /site/templates/ folder.
 * Width of chosen image in Inputfield
-* Width of image thumbnails in Inputfield
+* Width of image thumbnails in Inputfield 
 Settings are per field.
 
 ### When to use ?
@@ -28,4 +28,4 @@ $page->fieldname->content
 ```
 
 ### Credits
-This module was developed based on [Martijn Geerts FieldTypeSelect module](https://github.com/Da-Fecto/FieldtypeSelectFile)
+This module was developed based on [Martijn Geerts' FieldTypeSelect module](https://github.com/Da-Fecto/FieldtypeSelectFile)
