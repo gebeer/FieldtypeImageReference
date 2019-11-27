@@ -8,6 +8,7 @@
     - A relative path relative to the /site/templates/ folder.
 * Width of chosen image in Inputfield
 * Width of image thumbnails in Inputfield 
+
 Settings are per field.
 
 ### When to use ?
