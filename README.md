@@ -1,6 +1,7 @@
 # FieldtypeImagePicker & InputfieldImagePicker
 
 **Inputfield Image Picker** is an Inputfield & Fieldtype to select a single file or folder and stores the name and / or use the selected file as page template. The last option enables the editor to use multiple views for a page, depending on the selected template.
+
 ![Inputfield in page edior](images/inputfield-in-editor.png)
 
 ### Settings
@@ -9,6 +10,7 @@
     - A relative path relative to the /site/templates/ folder.
 * Width of chosen image in Inputfield
 * Width of image thumbnails in Inputfield 
+
 ![Inputfield Settings](images/inputfield-settings.png)
 
 Settings are per field.
