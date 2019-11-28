@@ -72,7 +72,7 @@ class InputfieldImagePicker extends Inputfield {
         } else {
             $markup = '<ul class="uk-thumbnav uk-grid-width-1-6">';
             foreach($files as $f) {
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'><img style='max-width: {$thumbWidth}px' data-filename='{$f}' src='{$baseUrl}{$f}'></li>";
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'><img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-filename='{$f}' src='{$baseUrl}{$f}'></li>";
             }
             $markup .= '</ul>';
             $markup .= '<input type="hidden" name="' . $this->name . '" id="' . $this->name . '">';
