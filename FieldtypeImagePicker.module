@@ -70,7 +70,7 @@ class FieldtypeImagePicker extends Fieldtype {
 	 */
 	public function ___formatValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
         // if ($field->outputFormat === 7) return $this->sleepValue($page, $field, $value);
-        $out = new IconFile;
+        $out = new ImagePickerFile;
         $out->path = $this->getFilepath($page, $field, $value);        
         $out->url = $this->getFileURL($field, $value);
         $out->content = $this->getFileContents($page, $field, $value);       
@@ -82,7 +82,6 @@ class FieldtypeImagePicker extends Fieldtype {
 	 * @param \ProcessWire\Field $field
      * @param string $value
      * @return string 
-     * @throws \ProcessWire\WireException
 	 */
 	public function getFilepath(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
         $filePath = $this->config->paths->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
