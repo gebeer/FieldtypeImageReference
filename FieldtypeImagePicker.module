@@ -30,7 +30,7 @@ class FieldtypeImagePicker extends Fieldtype {
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Image Picker'),
-			'version' => 100,
+			'version' => 101,
 			'summary' => __('Fieldtype that stores the name of an image file.'),
 			'author' => 'Gerhard Sitzmann',
 			'href' => '',

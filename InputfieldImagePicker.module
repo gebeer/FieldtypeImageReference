@@ -25,7 +25,7 @@ class InputfieldImagePicker extends Inputfield {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Image Picker',
-			'version' => 100,
+			'version' => 101,
 			'summary' => __('Inputfield to select a file from a folder.'),
 			'author' => 'Gerhard Sitzmann',
 			'href' => '',
