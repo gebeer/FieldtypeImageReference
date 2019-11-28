@@ -1,8 +1,8 @@
 <?php namespace ProcessWire;
 
 /**
- * Inputfield 'Image Picker' provides a means for selecting files (images) from a predefined folder
- * on teh server. Per Inputfield you can set a folder to list from.
+ * Inputfield 'Image Picker' provides a means for selectin files (images) from a predefined folder
+ * from disk. Per Inputfield you can set a folder to list from.
  *
  * ©2019 Gerhard Sitzmann
  *
@@ -25,7 +25,7 @@ class InputfieldImagePicker extends Inputfield {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Image Picker',
-			'version' => 101,
+			'version' => 100,
 			'summary' => __('Inputfield to select a file from a folder.'),
 			'author' => 'Gerhard Sitzmann',
 			'href' => '',
@@ -38,7 +38,7 @@ class InputfieldImagePicker extends Inputfield {
 	}
 
 	/**
-	 * Return the completed output of Inputfield image picker
+	 * Return the completed output of Inputfield select file
 	 *
 	 * @return string
 	 *
@@ -72,7 +72,7 @@ class InputfieldImagePicker extends Inputfield {
         } else {
             $markup = '<ul class="uk-thumbnav uk-grid-width-1-6">';
             foreach($files as $f) {
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'><img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-filename='{$f}' src='{$baseUrl}{$f}'></li>";
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini' uk-tooltip='title: {$f}'><img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-filename='{$f}' src='{$baseUrl}{$f}' alt='{$icon}'></li>";
             }
             $markup .= '</ul>';
             $markup .= '<input type="hidden" name="' . $this->name . '" id="' . $this->name . '">';
@@ -89,5 +89,5 @@ class InputfieldImagePicker extends Inputfield {
 
 		return $out;
 	}
-
+    
 }
