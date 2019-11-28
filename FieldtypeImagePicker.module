@@ -57,7 +57,7 @@ class FieldtypeImagePicker extends Fieldtype {
 	 *
 	 */
 	public function sanitizeValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
-		$filePath = $this->getFilepath($field, $value); // throws Exception if file does not exist
+		$filePath = $this->getFilepath($page, $field, $value); // throws Exception if file does not exist
 		return $value;
 	}
 
@@ -67,14 +67,13 @@ class FieldtypeImagePicker extends Fieldtype {
 	 * @param \ProcessWire\Field $field
      * @param string $value
      * @return \stdClass holding string path, string url and string|null content for inlining svg (content only for svg)   
-     * @throws \ProcessWire\WireException
 	 */
 	public function ___formatValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
         // if ($field->outputFormat === 7) return $this->sleepValue($page, $field, $value);
         $out = new IconFile;
-        $out->path = $this->getFilepath($field, $value);        
+        $out->path = $this->getFilepath($page, $field, $value);        
         $out->url = $this->getFileURL($field, $value);
-        $out->content = $this->getFileContents($field, $value);       
+        $out->content = $this->getFileContents($page, $field, $value);       
 		return $out;
 	}
 
@@ -85,12 +84,13 @@ class FieldtypeImagePicker extends Fieldtype {
      * @return string 
      * @throws \ProcessWire\WireException
 	 */
-	public function getFilepath(\ProcessWire\Field $field, $value) {
-		$filePath = $this->config->paths->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
+	public function getFilepath(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
+        $filePath = $this->config->paths->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
+        $fileUrl = $this->getFileUrl($field, $value);
 		if(file_exists($filePath)) {
             return $filePath;
         } else {
-            throw new \ProcessWire\WireException("File does not exist: {$filePath}");
+            $field->getInputfield($page)->error("File does not exist: {$fileUrl}");
         }
 	}
 
@@ -119,8 +119,8 @@ class FieldtypeImagePicker extends Fieldtype {
      * @param string $value
      * @return string 
 	 */
-	public function getFileMimetype(\ProcessWire\Field $field, $value) {
-		return mime_content_type($this->getFilepath($field, $value));
+	public function getFileMimetype(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
+		return mime_content_type($this->getFilepath($page, $field, $value));
 	}
 
 	/**
@@ -129,13 +129,13 @@ class FieldtypeImagePicker extends Fieldtype {
      * @param string $value
      * @return mixed string|null 
 	 */
-	public function getFileContents(\ProcessWire\Field $field, $value) {
+	public function getFileContents(\ProcessWire\Page $page, \ProcessWire\Field $field, $value) {
 
         $mimeTypes = ['image/svg', 'image/svg+xml'];
-        if( strtolower($this->getFileExtension($value)) !== 'svg' || !in_array($this->getFileMimetype($field, $value), $mimeTypes) ) {
+        if( strtolower($this->getFileExtension($value)) !== 'svg' || !in_array($this->getFileMimetype($page, $field, $value), $mimeTypes) ) {
             return null;
         } else {
-            return file_get_contents($this->getFilepath($field, $value));
+            return file_get_contents($this->getFilepath($page, $field, $value));
         }
 	}
 
