@@ -448,7 +448,8 @@ class FieldtypeImagePicker extends Fieldtype
             // update field settings
             $fields = $this->wire('fields')->find('type=FieldtypeImagePicker');
             var_dump($fields);
-            foreach ($fields as $field) {
+            foreach ($this->wire('fields') as $field) {
+                if($field->type != 'FieldtypeImagePicker') continue;
                 $field->set('folderpath', $field->get('folderPath'));
                 $field->set('folderPath', 'deprecated');
                 $field->set('fromfolder', 1);
