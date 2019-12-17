@@ -35,7 +35,7 @@ class InputfieldImagePicker extends Inputfield implements Module
     {
         return array(
             'title' => 'Image Picker Inputfield',
-            'version' => 101,
+            'version' => 110,
             'summary' => __('Inputfield to select a single image from images on a predefined page and it\'s children.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
