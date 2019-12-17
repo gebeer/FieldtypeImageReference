@@ -438,19 +438,17 @@ class FieldtypeImagePicker extends Fieldtype
     }
 
     public function ___upgrade($fromVersion, $toVersion) {
-        var_dump($fromVersion);
-        var_dump($toVersion);
         if (version_compare($fromVersion, $toVersion == -1)) {
-            var_dump('upgrade');
             $modules = $this->wire('modules');
             // install helper module
             if(!$modules->isInstalled('ImagePickerHookHelper')) $modules->install('ImagePickerHookHelper');
             $this->wire('log')->save('modules', 'installed module ImagePickerHookHelper');
 
-            // update field settings
+            // update field settings 
             foreach ($this->wire('fields') as $field) {
-                if(!$field->get('folderPath')) continue;
                 var_dump($field);
+                if(!$field->get('folderPath')) continue;
+                // @todo for some reason this code does not run
                 $field->set('folderpath', $field->get('folderPath'));
                 $field->set('folderPath', 'deprecated');
                 $field->set('fromfolder', 1);
