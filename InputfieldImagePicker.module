@@ -179,8 +179,9 @@ class InputfieldImagePicker extends Inputfield implements Module
 
     public function renderInputs($name, $value)
     {
+        $value = FieldtypeImagePicker::toJson($value->pageid, $value->filename);
         return "<div>
-        <input type='hidden' class='imagepicker_value' name='{$name}' id='{$name}' value='{FieldtypeImagePicker::toJson($value->pageid, $value->filename)}' \>
+        <input type='hidden' class='imagepicker_value' name='{$name}' id='{$name}' value='{$value}' \>
         </div>";
     }
 
