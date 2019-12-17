@@ -30,7 +30,7 @@ class FieldtypeImagePicker extends Fieldtype
     {
         return array(
             'title' => __('Image Reference From Another Page'),
-            'version' => 005,
+            'version' => 002,
             'summary' => __('Fieldtype that stores a reference to a single image from another page'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
@@ -46,7 +46,8 @@ class FieldtypeImagePicker extends Fieldtype
     }
 
     /**
-     * Include ImagePicker class, which serves as the value for fields of type FieldtypeImagePicker
+     * Include classes for virtual page
+     * virtual pageimages on that page serve as value for images from folders
      *
      */
     public function __construct()
@@ -138,10 +139,10 @@ class FieldtypeImagePicker extends Fieldtype
 
     /**
      * Return full disk path to file
-     * @param \ProcessWire\Field $field
+     * @param Field $field
      * @param object $value
      * @return string 
-     * @throws \ProcessWire\WireException
+     * @throws WireException
      */
     public function getFilepath(Page $page, Field $field, $value)
     {
@@ -154,17 +155,24 @@ class FieldtypeImagePicker extends Fieldtype
         }
     }
 
+    /**
+     * Return fill disk path to folder
+     *
+     * @param string $folderpath
+     * @return string disk path
+     */
     public function getBasePath($folderpath)
     {
         return $this->wire('config')->paths->templates . $folderpath;
     }
+
     /**
      * Return file URL
-     * @param \ProcessWire\Field $field
+     * @param Field $field
      * @param string $value
      * @return string 
      */
-    public function getFileUrl(\ProcessWire\Field $field, $value)
+    public function getFileUrl(Field $field, $value)
     {
         return $this->wire('config')->urls->templates . $field->folderpath . $value->filename;
     }
@@ -223,7 +231,7 @@ class FieldtypeImagePicker extends Fieldtype
     /**
      * Return stripped file contents (only for svg)
      * returns only the <svg> node from the svg document sincs this is all we need to inline an svg
-     * @param mixed $image Pageimage|ImagePickerFile
+     * @param Pageimage $image
      * @return mixed string|null
      * @throws WireException
      */
@@ -249,7 +257,7 @@ class FieldtypeImagePicker extends Fieldtype
 
     /**
      * Return file mime type
-     * @param mixed $image Pageimage|ImagePickerFile
+     * @param Pageimage $image
      * @return string 
      */
     public function getFileMimetype($image)
@@ -279,10 +287,6 @@ class FieldtypeImagePicker extends Fieldtype
     public function getInputfield(Page $page, Field $field)
     {
         $inputfield = $this->modules->get('InputfieldImagePicker');
-        // foreach ($field->data as $key => $value) {
-        //     if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
-        //     $inputfield->set($key, $value);
-        // }
         return $inputfield;
     }
 
@@ -360,6 +364,18 @@ class FieldtypeImagePicker extends Fieldtype
             $row = $query->fetch(\PDO::FETCH_NUM);
             $query->closeCursor();
             if (!empty($row)) {
+                $query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE field='pageid'");
+                $query->execute();
+                if (!$query->rowCount()) try {
+                    $database->exec("ALTER TABLE `$table` ADD COLUMN `pageid` INT NOT NULL AFTER data");
+                    $database->exec("ALTER TABLE `$table` ADD INT(`pageid`)");
+                    $this->message("Added 'pageid' column to '$field->table'");
+                    $database->exec("UPDATE `$table` SET pageid=0");
+                    $this->message("filled 'pageid' values with 0");
+                } catch (\Exception $e) {
+                    $this->error($e->getMessage());
+                }
+
                 $query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE field='filename'");
                 $query->execute();
                 if (!$query->rowCount()) try {
@@ -373,7 +389,7 @@ class FieldtypeImagePicker extends Fieldtype
                     $database->exec("UPDATE `$table` SET data=CONCAT(JSON_OBJECT(\"pageid\", `$table`.pageid, \"filename\", `$table`.filename))");
                     $this->message("populated 'data'");
                     $database->exec("ALTER TABLE `$table` MODIFY data JSON NOT NULL");
-                    $this->message("updated 'data' schema to JSON NOT NULL");
+                    $this->message("updated 'data' schema to JSON");
                 } catch (\Exception $e) {
                     $this->error($e->getMessage());
                 }

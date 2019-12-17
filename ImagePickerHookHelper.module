@@ -15,7 +15,7 @@ class ImagePickerHookHelper extends WireData implements Module
     {
         return array(
             'title' => 'Hook Helper Module for FieldtypeImagePicker',
-            'version' => 005,
+            'version' => 002,
             'summary' => __('Adds hooks to Pagefiles to cleanup stored data from FieldtypeImagePicker.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
