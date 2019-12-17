@@ -1,8 +1,9 @@
-<?php namespace ProcessWire;
+<?php
 
+namespace ProcessWire;
 /**
- * Inputfield 'Image Picker' provides a means for selectin files (images) from a predefined folder
- * from disk. Per Inputfield you can set a folder to list from.
+ * Inputfield 'Image Picker' provides a means for selecting images from a predefined page and it's children.
+ * Per field you can set a page to list from.
  *
  * ©2019 Gerhard Sitzmann
  *
@@ -15,79 +16,403 @@
  *
  */
 
-class InputfieldImagePicker extends Inputfield {
+class InputfieldImagePicker extends Inputfield implements Module
+{
 
-	/**
-	 * Return an array of module information
-	 *
-	 * @return array
-	 */
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Image Picker',
-			'version' => 100,
-			'summary' => __('Inputfield to select a file from a folder.'),
-			'author' => 'Gerhard Sitzmann',
-			'href' => '',
-			'requires' => array(
-				'FieldtypeImagePicker',
+    /**
+     * holds all pages with images
+     *
+     * @var Pages
+     */
+    protected $imagePages;
+
+    /**
+     * Return an array of module information
+     *
+     * @return array
+     */
+    public static function getModuleInfo()
+    {
+        return array(
+            'title' => 'Select Image From Page',
+            'version' => 005,
+            'summary' => __('Inputfield to select a single image from images on a predefined page and it\'s children.'),
+            'author' => 'Gerhard Sitzmann',
+            'href' => '',
+            'requires' => array(
+                'FieldtypeImagePicker',
                 'PHP>=7.1.0',
-                'ProcessWire>=3.x'
-			)
-		);
-	}
+                'ProcessWire>=3.0.120'
+            )
+        );
+    }
 
-	/**
-	 * Return the completed output of Inputfield select file
-	 *
-	 * @return string
-	 *
-	 */
-	public function ___render() {
+    /**
+     * populates properties to inputfield
+     *
+     * @return void
+     */
+    public function populateValues()
+    {
+        // populate field settings data to this input
+        foreach($this->wire('fields')->get($this->name)->data as $key => $value) {
+            if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
+            $this->set($key, $value);
+        }
 
-        $folderPath = trim(trim($this->folderPath), '/') . "/";
-		$folder = $this->config->paths->templates . $folderPath;
-        $baseUrl = $this->config->urls->templates . $folderPath;
+        // populate imagepages 
+        $pages = new PageArray;
+        if($this->imagespage) $pages->add($this->getImagePages());
+        if($this->frompage && $this->hasPage) $pages->add($this->hasPage);
+        $this->imagePages = $pages;
+    }
 
-		if(!is_dir($folder)) {
-            $this->error($this->_("Path to files is invalid"));
-            return;
-        } 
-        
-        $out = '';
+    /**
+     * populates config JS
+     *
+     * @return void
+     */
+    public function populateConfigJs()
+    {
+        $input = $this->wire('input');
+        if ($this->process == 'ProcessPageEdit') { // we are on a page edit screen
+            $editPageUrl = $this->wire('pages')->get($input->id)->editUrl . "&InputfieldImagePicker=1";
+        } else { // other page 
+            $editPageUrl = $this->page->url . "?InputfieldImagePicker=1";
+        }
+        $this->wire('config')->js($this->className, array(
+            'url' => $editPageUrl
+        ));
+    }
+
+    /**
+     * Set an attribute to this Inputfield
+     *
+     * In this case, we just capture the 'value' attribute and make sure it's something valid
+     * 
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     *
+     */
+    public function setAttribute($key, $value)
+    {
+        if ($key == 'value' && empty($value)) {
+            $value = FieldtypeImagePicker::toJson();
+        }
+
+        return parent::setAttribute($key, $value);
+    }
+
+    public function isEmpty()
+    {
+        return (!$this->value);
+    }
+
+    /**
+     * Return the completed output of Inputfield select file
+     *
+     * @return string
+     *
+     */
+    public function ___render()
+    {
+        $this->populateValues();
+        $this->populateConfigJs();
+        $input = $this->wire('input');
+
+        // render thumbnails only for ajax request
+        if ($input->InputfieldImagePicker && isset($input->pageid)) {
+            if((int) $input->pageid === 0) {
+                echo $this->getThumbnailsForFolder($this->folderpath);
+            } else {
+                echo $this->getThumbnailsForPage($input->pageid);
+            }
+            exit;
+        }
+
+        $name = $this->attr('name');
+        $value = json_decode($this->attr('value'));
+        if ($value->pageid === -1) {
+            $message = $this->_("The referenced image was deleted. Choose a new image");
+            $this->page->error($this->_("The referenced image was deleted. Choose a new image"));
+            $this->error($message);
+        }
+        $out = $this->renderSelectedImage($value);
+        $out .= $this->renderInputs($name, $value);
+        $out .= $this->renderThumbnails();
+
+        return $out;
+    }
+
+    public function renderSelectedImage($value)
+    {
+        $previewWidth = ($this->previewWidth) ? $this->previewWidth : 200;
         $blankSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mN89x8AAuEB74Y0o2cAAAAASUVORK5CYII=';
-        $icon = $this->hasPage->icon;
-        $url = ($icon) ? $baseUrl . $icon : $blankSrc;
-        $previewWidth = ($this->previewWidth) ? $this->previewWidth : 75;
-        $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 75;
-        $out .= "<div class='uk-panel uk-panel-box uk-margin-bottom'>
-        <span uk-icon='icon: trash' uk-tooltip='title: Remove Image'></span>
-        <img src='{$url}' style='width: {$previewWidth}px; max-width: {$previewWidth}px' data-src='{$blankSrc}'>
-        <div class='uk-thumbnail-caption'>{$icon}</div>
-        </div>";
+        if ($value->pageid && $value->filename) {
+            // @todo case image doesn't exist
+            // check if file belongs to imagespage or frompage
+            $imagesfield = ($this->frompage && $this->hasPage && ($value->pageid == $this->hasPage->id)) ? $this->imagesfieldpage : $this->imagesfield;
+            $image = $this->wire('pages')->get($value->pageid)->get($imagesfield)->getFile($value->filename);
+            $url = ($image) ? $image->width($previewWidth)->url : $blankSrc;
+        } elseif ((int) $value->pageid === 0 && $value->filename) {
+            // image from folder
+            $image = $value->filename;
+            $url = $this->wire('config')->urls->templates . $this->folderpath . $image;
 
+        } elseif ((int) $value->pageid === 0 && empty($value->filename)) {
+            // empty image
+            $image = null;
+            $url = $blankSrc;
+        }
+        $info = ($image) ? $this->renderTooltip($image) : '';
+        $out = "<div class='uk-panel uk-panel-box uk-margin-bottom'>
+        <span class='fa fa-trash' uk-tooltip='title: Remove Image'></span>
+        <img src='{$url}' style='width: {$previewWidth}px; max-width: {$previewWidth}px' data-src='{$blankSrc}'>
+        <div class='uk-thumbnail-caption' style='max-width: {$previewWidth}px'>{$info}</div>";
+        $out .= "</div>";
+
+        return $out;
+    }
+
+
+    public function renderInputs($name, $value)
+    {
+        return "<div>
+        <input type='hidden' class='imagepicker_value' name='{$name}' id='{$name}' value='{FieldtypeImagePicker::toJson($value->pageid, $value->filename)}' \>
+        </div>";
+    }
+
+    public function renderThumbnails()
+    {
+        $wrapper = new InputfieldWrapper;
+        $wrapper->attr('id', 'imagepicker_thumbs');
+        foreach ($this->imagePages as $p) {
+            $wrapper->add($this->renderThumbnailsForPage($p));
+        }
+        if($this->fromfolder && $this->folderpath) $wrapper->add($this->renderThumbnailsForFolder($this->folderpath));
+
+        return $wrapper->render();
+    }
+
+    /**
+     * renders thumbnails for an image page inside an InputfieldMarkup
+     *
+     * @param Page $page
+     * @return InputfieldMarkup inputfield markup instance
+     */
+    public function renderThumbnailsForPage($page)
+    {
+        $button = "<a href='{$page->editUrl}&field={$this->imagesfield}&from=imagepicker' class='imagepicker_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><span class='fa fa-upload'></span></a>";
+
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '">';
+        if (!$this->useajax) $markup .= $this->getThumbnailsForPage($page->id);
+        $markup .= '</ul>';
+        $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
+        $markupField->class('imagepicker_thumbholder');
+        $markupField->id = "imagepicker_  thumbs_{$page->id}";
+        // $markupField->attr('data-pageid', $page->id); // does not work
+        $markupField->label = sprintf($this->_('Choose an image from page "%s"'), $page->title);
+        $markupField->entityEncodeLabel = false;
+        $markupField->markupText = $button . $markup;
+        $markupField->collapsed(1); 
+
+        return $markupField;
+    }
+
+    /**
+     * renders thumbnails for images in a folder inside an InputfieldMarkup
+     *
+     * @param string $folderpath
+     * @return InputfieldMarkup inputfield markup instance
+     */
+    public function renderThumbnailsForFolder($folderpath)
+    {
+
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="0">';
+        if (!$this->useajax) $markup .= $this->getThumbnailsForFolder($folderpath);
+        $markup .= '</ul>';
+        $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
+        $markupField->class('imagepicker_thumbholder');
+        // $markupField->attr('data-pageid', $page->id); // does not work
+        $markupField->label = sprintf($this->_('Choose an image from folder "%s"'), $folderpath);;
+        $markupField->entityEncodeLabel = false;
+        $markupField->markupText = $markup;
+        $markupField->collapsed(1); 
+
+        return $markupField;
+    }
+
+    /**
+     * renders thumbnails markup for an image page
+     *
+     * @param int $pageid
+     * @return string thumbnail markup for page images
+     */
+    public function getThumbnailsForPage($pageid)
+    {
+        $page = $this->wire('pages')->get($pageid);
+        $images = $this->getPageImages($page);
+        if (!$images->count) {
+            $markup = '<b>' . $this->_('There are no images. Upload images to page') . ' ' . $page->title . '</b>';
+        } else {
+            $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
+            $markup = '';
+            foreach ($images as $img) {
+                $tooltip = $this->renderTooltip($img);
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'>
+                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$page->id}' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip='{$tooltip}'>
+                </li>";
+            }
+        }
+
+        return $markup;
+    }
+
+    /**
+     * renders thumbnails markup for images in a folder
+     *
+     * @param int $page
+     * @return string thumbnail markup for folder images
+     */
+    public function getThumbnailsForFolder($folderpath)
+    {
+
+        $folder = $this->wire('config')->paths->templates . $folderpath;
+        $baseUrl = $this->wire('config')->urls->templates . $folderpath;
+
+        // get files as pageimages
+        $vPage = new ImagePickerVirtualpage($folder);
+        $images = $vPage->virtualImages;
+        bd($images);
+        if (!$images->count) {
+            $markup = '<b>' . $this->_('There are no images. Upload images to folder') . ' ' . $baseUrl . '</b>';
+        } else {
+            $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
+            $markup = '';
+            foreach ($images as $img) {
+                $tooltip = $this->renderTooltip($img);
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'>
+                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip='{$tooltip}'>
+                </li>";
+            }
+        }
+
+        return $markup;
+
+        // get files the as array of filenames
         $files = $this->wire('files')->find($folder, array('returnRelative' => true));
         if(!count($files)) {
-            $markup = '<b>' . $this->_('There are no images. Upload images to') . ' ' . $baseUrl . '</b>';
+            $markup = '<b>' . $this->_('There are no images. Upload images to folder') . ' ' . $baseUrl . '</b>';
         } else {
-            $markup = '<ul class="uk-thumbnav uk-grid-width-1-6">';
+            $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
+            $markup = '';
             foreach($files as $f) {
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini' uk-tooltip='title: {$f}'><img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-filename='{$f}' src='{$baseUrl}{$f}' alt='{$icon}'></li>";
+                $src = $baseUrl . $f;
+                $tooltip = $this->renderTooltip($f);
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'>
+                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$f}' src='{$baseUrl}{$f}' alt='{$f}'  uk-tooltip='{$tooltip}'>
+                </li>";
             }
-            $markup .= '</ul>';
-            $markup .= '<input type="hidden" name="' . $this->name . '" id="' . $this->name . '">';
         }
-        $markupField = $this->wire('modules')->get('InputfieldMarkup');
-        $markupField->label = $this->_('Choose an image');
-        $markupField->value = $markup;
-        if($icon) $markupField->collapsed(1); // collapse when Icon already chosen
-        
-        $wrapper = new InputfieldWrapper;
-        $wrapper->add($markupField);
+        return $markup;
+    }
 
-        $out .= $wrapper->render();
+    /**
+     * creates tooltip markup
+     * @param mixed $img Pageimage|string|null either a Pageimage object, filename string or null
+     */
+    public function renderTooltip($img)
+    {
+        if(is_null($img)) return '';
+        if(is_string($img)) {
+            $filepath = $this->wire('config')->paths->templates . $this->folderpath . $img;
+            $basename = $img;
+            list($width, $height, $type) = getimagesize($filepath);
+            $img = new \stdClass;
+            $img->basename = $basename;
+            $img->description = '';
+            $img->width = $width;
+            $img->height = $height;
+            $img->filesizeStr = $this->formatBytes(filesize($filepath));
+            $img->ext = pathinfo($filepath, PATHINFO_EXTENSION);
 
-		return $out;
-	}
+        }
+        $out = $img->basename;
+        if ($img->description) $out .= '<br>' . $img->description;
+        $out .= '<br>' . $img->filesizeStr;
+        if (strtolower($img->ext) !== 'svg') $out .= '<br>' . "{$img->width} x {$img->height} px";
+
+        return $out;
+    }
+
+    /**
+     * gets all pages that serve image thumbnails to the inputfield
+     *
+     * @return Pages
+     */
+    public function getImagePages()
+    {
+        $pages = $this->wire('pages')->find($this->imagespage, array('include' => 'hidden'));
+        if ($this->includechildren) {
+            foreach ($pages->first()->children('include=hidden') as $child) {
+                if ($child->hasField($this->imagesfield)) $pages->add($child);
+            }
+        }
+        return $pages;
+    }
+
+    /**
+     * gets all images from a page
+     *
+     * @param Page $page
+     * @return Pageimages
+     */
+    public function getPageImages($page)
+    {
+        $imagesfield = ($this->frompage && $page == $this->hasPage) ? $this->imagesfieldpage : $this->imagesfield;
+        return $page->get($imagesfield);
+
+    }
+
+    protected function formatBytes($bytes, $precision = 0) { 
+        $units = array('B', 'KB', 'MB', 'GB', 'TB'); 
     
+        $bytes = max($bytes, 0); 
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024)); 
+        $pow = min($pow, count($units) - 1); 
+    
+        // Uncomment one of the following alternatives
+        // $bytes /= pow(1024, $pow);
+        $bytes /= (1 << (10 * $pow)); 
+    
+        return round($bytes, $precision) . ' ' . $units[$pow]; 
+    }
+
+    /**
+     * Process the input after a form submission
+     * 
+     * @param WireInputData $input
+     * @return $this
+     *
+     */
+    public function ___processInput(WireInputData $input)
+    {
+        $name = $this->attr('name');
+        $value = $this->attr('value');
+        $valueObj = json_decode($value);
+        $newValue = json_decode($input[$name]);
+        if (!isset($newValue->filename) && !isset($newValue->pageid)) $newValue = json_decode(FieldtypeImagePicker::toJson());
+       
+        $filename = $newValue->filename;
+        $pageid = $newValue->pageid;
+        if($valueObj->filename == $filename && $valueObj->pageid == $pageid) return $this;
+
+        $this->attr('value', json_encode($newValue));
+
+        $page = ($this->hasPage) ? $this->hasPage : $this->page;
+        $page->set($name, $this->attr('value'));
+
+        return $this;
+    }
 }

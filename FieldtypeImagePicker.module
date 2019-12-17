@@ -2,11 +2,8 @@
 
 namespace ProcessWire;
 
-use ProcessWire\ImagePickerFile;
-
 /**
- * Fieldtype 'Image Picker' stores a file (image) name selected in the associated
- * Inputfield.
+ * Fieldtype 'Image Picker' stores a reference to an image from another page from selected image in the associated InputfieldImagePicker.
  * The image can be rendered in template files
  * In case of SVG the file contents can be rendered inline
  *
@@ -24,7 +21,6 @@ use ProcessWire\ImagePickerFile;
 class FieldtypeImagePicker extends Fieldtype
 {
 
-
     /**
      * Return an array of module information
      *
@@ -33,67 +29,123 @@ class FieldtypeImagePicker extends Fieldtype
     public static function getModuleInfo()
     {
         return array(
-            'title' => __('Image Picker'),
-            'version' => 100,
-            'summary' => __('Fieldtype that stores the name of an image file.'),
+            'title' => __('Image Reference From Another Page'),
+            'version' => 005,
+            'summary' => __('Fieldtype that stores a reference to a single image from another page'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
-            'installs' => 'InputfieldImagePicker',
+            'installs' => [
+                'InputfieldImagePicker',
+                'ImagePickerHookHelper'
+            ],
             'requires' => [
                 'PHP>=7.1.0',
-                'ProcessWire>=3.x'
+                'ProcessWire>=3.0.120'
             ],
         );
     }
 
     /**
-     * This method is called when all system classes are loaded and ready for API usage
+     * Include ImagePicker class, which serves as the value for fields of type FieldtypeImagePicker
      *
      */
-    public function init()
+    public function __construct()
     {
-        parent::init();
-        // $this->allowTextFormatters(false);
-        include($this->wire('config')->paths->{$this->className} . 'ImagePickerFile.php');
+        // require_once(dirname(__FILE__) . '/ImagePickerFile.php');
+        require_once(dirname(__FILE__) . '/ImagePickerVirtualpage.php');
     }
 
     /**
-     * Sanitize value for storage
+     * Return all compatible Fieldtypes 
+     * 
+     * @param Field $field
+     * @return null
      *
      */
-    public function sanitizeValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value)
+    public function ___getCompatibleFieldtypes(Field $field)
     {
-        $filePath = $this->getFilepath($page, $field, $value); 
+        // there are no other fieldtypes compatible with this one
+        return null;
+    }
+
+
+    /**
+     * Sanitize the value for runtime storage and return it.
+     * @param Page $page
+     * @param Field $field
+     * @param string $value json string
+     * @return string json string
+     */
+    public function sanitizeValue(Page $page, Field $field, $value)
+    {
+        // if it's not a json string, then return a json string with empty values
+        $obj = json_decode($value);
+        if (!isset($obj->pageid) && !isset($obj->filename)) return $this->toJson();
+
+        $value = $this->wire('sanitizer')->text($value);
+
         return $value;
     }
 
     /**
-     * Format value for output
-     * @param \ProcessWire\Page $page
-     * @param \ProcessWire\Field $field
-     * @param string $value
-     * @return \stdClass holding string path, string url and string|null content for inlining svg (content only for svg)   
+     * Get a blank value used by this fieldtype
+     * 
+     * @param Page $page
+     * @param Field $field
+     * @return string json string
+     *
      */
-    public function ___formatValue(\ProcessWire\Page $page, \ProcessWire\Field $field, $value)
+    public function getBlankValue(Page $page, Field $field)
     {
-        // if ($field->outputFormat === 7) return $this->sleepValue($page, $field, $value);
-        $out = new ImagePickerFile;
-        $out->path = $this->getFilepath($page, $field, $value);
-        $out->url = $this->getFileURL($field, $value);
-        $out->content = $this->getFileContents($page, $field, $value);
-        return $out;
+        return $this->toJson();
     }
+
+    /**
+     * Format value for output
+     * @param Page $page
+     * @param Field $field
+     * @param string $value json string
+     * @return mixed Pageimage|null
+     *    
+     */
+    public function ___formatValue(Page $page, Field $field, $value)
+    {
+        $value = json_decode($value);
+        if ($value->filename && (int) $value->pageid === 0) { // image from folder
+            // virtual page with property virtualImages that holds virtual Pageimages for this folder
+            $vPage = new ImagePickerVirtualpage($this->getBasePath($field->folderpath));
+            if(!$vPage instanceof NullPage) {
+                $pageimage = $vPage->virtualImages->getFile($value->filename);
+                return $pageimage;
+            }
+
+            // $file = new ImagePickerFile;
+            // $file->set('filename', $this->getFilepath($page, $field, $value));
+            // $file->set('url', $this->getFileURL($field, $value));
+            // $file->set('content', $this->getFileContent($page, $field, $value));
+            // $file->set('ext', pathinfo($file->get('filename'), PATHINFO_EXTENSION));
+            // return $file;
+        } elseif ($value->filename && $value->pageid !== 0) { // Pageimage
+            $pageimage = $this->wire('pages')->get($value->pageid)->get($field->imagesfield)->getFile($value->filename);
+            if ($pageimage && $pageimage instanceof Pageimage) {
+                $this->addHookProperty("Pageimage::svgcontent", $this, 'addPropertySvgcontent');
+                return $pageimage;
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Return full disk path to file
      * @param \ProcessWire\Field $field
-     * @param string $value
+     * @param object $value
      * @return string 
      * @throws \ProcessWire\WireException
      */
-    public function getFilepath(\ProcessWire\Page $page, \ProcessWire\Field $field, $value)
+    public function getFilepath(Page $page, Field $field, $value)
     {
-        $filePath = $this->config->paths->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
+        $filePath = $this->getBasePath($field->folderpath) . $value->filename;
         $fileUrl = $this->getFileUrl($field, $value);
         if (file_exists($filePath)) {
             return $filePath;
@@ -102,6 +154,10 @@ class FieldtypeImagePicker extends Fieldtype
         }
     }
 
+    public function getBasePath($folderpath)
+    {
+        return $this->wire('config')->paths->templates . $folderpath;
+    }
     /**
      * Return file URL
      * @param \ProcessWire\Field $field
@@ -110,47 +166,75 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function getFileUrl(\ProcessWire\Field $field, $value)
     {
-        return $this->config->urls->templates . trim(trim($field->folderPath, '/')) . '/' . $value;
+        return $this->wire('config')->urls->templates . $field->folderpath . $value->filename;
     }
 
     /**
-     * Return file extension
-     * @param string $value
-     * @return string 
+     * converts values into json string
+     *
+     * @param integer $pageid
+     * @param string $filename
+     * @return string json string
      */
-    public function getFileExtension($value)
+    public static function toJson($pageid = '0', $filename = '')
     {
-        return pathinfo($value, PATHINFO_EXTENSION);
+        return json_encode(array('pageid' => "{$pageid}", 'filename' => $filename));
     }
 
     /**
-     * Return file mime type
-     * @param \ProcessWire\Field $field
-     * @param string $value
-     * @return string 
+     * Given a raw value (value as stored in database), return the value as it would appear in a Page object.
+     *
+     * @param Page $page
+     * @param Field $field
+     * @param array $value
+     * @return string json string
      */
-    public function getFileMimetype(\ProcessWire\Page $page, \ProcessWire\Field $field, $value)
+    public function ___wakeupValue(Page $page, Field $field, $value)
     {
-        return mime_content_type($this->getFilepath($page, $field, $value));
+        $obj = json_decode($value['data']);
+        return $this->toJson($obj->pageid, $obj->filename);
+    }
+
+    /**
+     * Given an 'awake' value, as set by wakeupValue(), convert the value back to a basic type for storage in database.
+     *
+     * @param Page $page
+     * @param Field $field
+     * @param string $value json string
+     * @return array properties string filename, int pageid, data json string
+     */
+    public function ___sleepValue(Page $page, Field $field, $value)
+    {
+
+        $obj = json_decode($value);
+
+        $filename = $this->wire('sanitizer')->string($obj->filename);
+        $pageid = $this->wire('sanitizer')->int($obj->pageid);
+
+        $sleepValue = array(
+            'filename' => $filename,
+            'pageid' => $pageid,
+            'data' => $this->toJson($pageid, $filename)
+        );
+
+        return $sleepValue;
     }
 
     /**
      * Return stripped file contents (only for svg)
      * returns only the <svg> node from the svg document sincs this is all we need to inline an svg
-     * @param \ProcessWire\Field $field
-     * @param string $value
+     * @param mixed $image Pageimage|ImagePickerFile
      * @return mixed string|null
-     * @throws \ProcessWire\WireException
+     * @throws WireException
      */
-    public function getFileContents(\ProcessWire\Page $page, \ProcessWire\Field $field, $value)
+    public function getFileContent($image)
     {
-
         $mimeTypes = ['image/svg', 'image/svg+xml'];
-        if (strtolower($this->getFileExtension($value)) !== 'svg' || !in_array($this->getFileMimetype($page, $field, $value), $mimeTypes)) {
+        if (strtolower($image->ext) !== 'svg' || !in_array($this->getFileMimetype($image), $mimeTypes)) {
             return null;
         } else {
             $doc = new \DOMDocument;
-            $doc->loadXML(file_get_contents($this->getFilepath($page, $field, $value)));
+            $doc->loadXML(file_get_contents($image->filename));
             $xpath = new \DOMXPath($doc);
             $xpath->registerNamespace('svg', 'http://www.w3.org/2000/svg');
             $svg = $xpath->query('/svg:svg')->item(0);
@@ -158,41 +242,179 @@ class FieldtypeImagePicker extends Fieldtype
                 return $doc->saveXML($svg);
             } else {
                 $fileUrl = $this->getFileUrl($field, $value);
-                throw new \ProcessWire\WireException("The SVG file at {$fileUrl} seems corrupt. Could not find SVG tag in file");
+                throw new WireException("The SVG file at {$fileUrl} seems corrupt. Could not find SVG tag in file");
             }
         }
     }
 
+    /**
+     * Return file mime type
+     * @param mixed $image Pageimage|ImagePickerFile
+     * @return string 
+     */
+    public function getFileMimetype($image)
+    {
+        return mime_content_type($image->filename);
+    }
+
+    /**
+     * Hook function for adding custom property 'svgcontent' to a PageImage object 
+     *
+     * @param Hookevent $event
+     * @return string svg markup
+     */
+    public function ___addPropertySvgcontent(Hookevent $event)
+    {
+        $event->return = $this->getFileContent($event->object);
+    }
 
     /**
      * Return new instance of the Inputfield associated with this Fieldtype
      *
-     * @param \ProcessWire\Page $page
-     * @param \ProcessWire\Field $field
+     * @param Page $page
+     * @param Field $field
      * @return Inputfield
      *
      */
-    public function getInputfield(\ProcessWire\Page $page, \ProcessWire\Field $field)
+    public function getInputfield(Page $page, Field $field)
     {
         $inputfield = $this->modules->get('InputfieldImagePicker');
-        $inputfield->set('folderPath', $field->folderPath);
-        $inputfield->set('previewWidth', $field->previewWidth);
-        $inputfield->set('thumbWidth', $field->thumbWidth);
+        // foreach ($field->data as $key => $value) {
+        //     if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
+        //     $inputfield->set($key, $value);
+        // }
         return $inputfield;
     }
 
     /**
      * Return the database schema in specified format
+     * 
+     * @param Field $field
+     * @return array
      *
      */
     public function getDatabaseSchema(Field $field)
     {
-        $schema = parent::getDatabaseSchema($field);
-        // $len = $this->wire('database')->getMaxIndexLength();
-        $schema['data'] = 'text NOT NULL';
-        // $schema['keys']['data_exact'] = "KEY `data_exact` (`data`($len))"; 
-        $schema['keys']['data'] = 'FULLTEXT KEY `data` (`data`)';
+
+        // do not get the default schema because it assigns an index and key to data column which is not allowed for JSON data type
+        // $schema = parent::getDatabaseSchema($field);
+
+        // return $schema;
+        $engine = $this->wire('config')->dbEngine;
+        $charset = $this->wire('config')->dbCharset;
+        $schema = array(
+            'pages_id' => 'int UNSIGNED NOT NULL',
+            'data' => 'JSON NOT NULL',
+            'pageid' => 'INT NOT NULL',
+            'filename' => 'VARCHAR(255) NOT NULL',
+            'keys' => array(
+                'primary' => 'PRIMARY KEY (`pages_id`)',
+                'pageid' => 'KEY (`pageid`)',
+                'filename' => 'FULLTEXT(`filename`)'
+            ),
+            // additional data 
+            'xtra' => array(
+                // any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
+                'append' => "ENGINE=$engine DEFAULT CHARSET=$charset",
+
+                // true (default) if this schema provides all storage for this fieldtype.
+                // false if other storage is involved with this fieldtype, beyond this schema (like repeaters, PageTable, etc.)
+                'all' => true,
+            )
+        );
+
+        if ($field->id) $this->updateDatabaseSchema($field, $schema);
+
         return $schema;
+    }
+
+    /**
+     * Update the DB schema, if necessary
+     * 
+     * @param Field $field
+     * @param array $schema
+     *
+     */
+    protected function updateDatabaseSchema(Field $field, array $schema)
+    {
+
+        $requiredVersion = 1;
+        $schemaVersion = (int) $field->get('schemaVersion');
+        if ($schemaVersion >= $requiredVersion) {
+            // already up-to-date
+            return;
+        }
+        if ($schemaVersion == 0) {
+            /**
+             * update schema to v2: 
+             * add 'filename' column
+             * copy values from data to filename
+             * update column data with json string
+             */
+            // 	
+            $schemaVersion = 1;
+            $database = $this->wire('database');
+            $table = $database->escapeTable($field->getTable());
+            $query = $database->prepare("SHOW TABLES LIKE '$table'");
+            $query->execute();
+            $row = $query->fetch(\PDO::FETCH_NUM);
+            $query->closeCursor();
+            if (!empty($row)) {
+                $query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE field='filename'");
+                $query->execute();
+                if (!$query->rowCount()) try {
+                    $database->exec("ALTER TABLE `$table` ADD COLUMN `filename` VARCHAR(255) NOT NULL AFTER pageid");
+                    $database->exec("ALTER TABLE `$table` ADD FULLTEXT(`filename`)");
+                    $this->message("Added 'filename' column to '$field->table'");
+                    $database->exec("UPDATE `$table` SET filename=data");
+                    $this->message("copied 'data' values to 'filename' column");
+                    $database->exec("UPDATE `$table` SET `data`=''");
+                    $database->exec("ALTER TABLE `$table` DROP KEY data");
+                    $database->exec("UPDATE `$table` SET data=CONCAT(JSON_OBJECT(\"pageid\", `$table`.pageid, \"filename\", `$table`.filename))");
+                    $this->message("populated 'data'");
+                    $database->exec("ALTER TABLE `$table` MODIFY data JSON NOT NULL");
+                    $this->message("updated 'data' schema to JSON NOT NULL");
+                } catch (\Exception $e) {
+                    $this->error($e->getMessage());
+                }
+            }
+        }
+
+        $field->set('schemaVersion', $schemaVersion);
+        $field->save();
+    }
+
+    /**
+     * Match values for PageFinder
+     * 
+     * @param DatabaseQuerySelect $query
+     * @param string $table
+     * @param string $subfield
+     * @param string $operator
+     * @param string $value
+     * @return DatabaseQuerySelect
+     *
+     */
+    public function getMatchQuery($query, $table, $subfield, $operator, $value)
+    {
+        $database = $this->wire("database");
+        if (empty($subfield) || $subfield == "data") {
+            $path = '$.*';
+        } else {
+            $path = '$.' . $subfield;
+        }
+        $table = $database->escapeTable($table);
+        $value = $database->escapeStr($value);
+        if ($operator == "=") {
+            $query->where("JSON_SEARCH({$table}.data, 'one', '$value', NULL, '$path') IS NOT NULL");
+        } else if ($operator == "*=" || $operator == "%=") {
+            $query->where("JSON_SEARCH({$table}.data, 'one', '%$value%', NULL, '$path') IS NOT NULL");
+        } else if ($operator == "^=") {
+            $query->where("JSON_SEARCH({$table}.data, 'one', '$value%', NULL, '$path') IS NOT NULL");
+        } else if ($operator == "$=") {
+            $query->where("JSON_SEARCH({$table}.data, 'one', '%$value', NULL, '$path') IS NOT NULL");
+        }
+        return $query;
     }
 
     /**
@@ -204,49 +426,196 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function ___getConfigInputfields(Field $field)
     {
-        $error = false;
-        if ($field->folderPath) {
-            $folder = $this->config->paths->templates . ltrim($field->folderPath, '/');
-            if (!is_dir($folder)) {
-                $path = $this->config->urls->templates . ltrim($field->folderPath, '/');
-                $error = sprintf($this->_("Folder %s doesn't exist."), $path);
+        $errorimgpage = false;
+        if ($field->imagespage) {
+            $hasImagefield = false;
+            $imagespage = $this->pages->get("id={$field->imagespage}, include=hidden");
+            foreach ($imagespage->fieldgroup as $f) {
+                if ($f->type instanceof FieldtypeImage) {
+                    $hasImagefield = true;
+                    break;
+                }
+            }
+            if (!$hasImagefield) {
+                $errorimgpage = $this->_("The selected page has no field for images. Choose a page with images field or add an images field to this page's template");
+            }
+        }
+
+        $errorfolder = false;
+        if ($field->fromfolder && $field->folderpath) {
+            $folder = $this->config->paths->templates . ltrim($field->folderpath, '/');
+            $path = $this->config->urls->templates . ltrim($field->folderpath, '/');
+            if ($field->folderpath && !is_dir($folder)) {
+                $errorfolder = sprintf($this->_("Folder %s doesn't exist."), $path);
+            } elseif ($field->folderpath && count(scandir($folder)) == 2) {
+                $errorfolder = sprintf($this->_("Folder %s is empty. You need to upload images."), $path);
             }
         }
 
         $inputfields = parent::___getConfigInputfields($field);
 
+        $sourceswrapper = new InputfieldFieldset;
+        $sourceswrapper->label = $this->_("Choose Image sources");
+
+        /* images from pages*/
+        $wrapper = new InputfieldFieldset;
+        $wrapper->label = $this->_("Pick images from a page?");
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->attr('name', 'frompages');
+        $f->label = $this->_("Pick images from a page?");
+        // $f->description = $this->_('If checked, all child pages of above page will serve images to the inputfield');
+        $f->attr('checked', $field->frompages ? 'checked' : '');
+        $f->attr('value', $field->frompages);
+        $wrapper->add($f);
+
+        $f = $this->modules->get('InputfieldPageListSelect');
+        $f->attr('name', 'imagespage');
+        $f->parent_id = 0; // 0 to include homepage
+        $f->label = $this->_("Choose a page to get images from");
+        $f->description = $this->_("This page will be used to supply images");
+        $f->attr('value', $field->imagespage);
+        $f->showIf('frompages=1');
+        $f->requiredIf('frompages=1');
+        $f->getErrors(true);
+        if ($errorimgpage) $f->error($errorimgpage);
+        $wrapper->add($f);
+
+        if (!$errorimgpage) {
+            $f = $this->modules->get('InputfieldRadios');
+            $f->attr('name', 'imagesfield');
+            $f->optionColumns = 1;
+            $f->showIf('frompages=1');
+            $f->requiredIf('imagespage!=""');
+            if ($field->imagespage) {
+                $f->label = $this->_("Choose an images field on the template of the page above");
+                $f->required(1);
+                $fields = $imagespage->fieldgroup->find('type=FieldtypeImage');
+                $options = array();
+                foreach ($fields as $fd) $options[$fd->name] = $fd->name;
+                $f->options = $options;
+                $f->attr('value', $field->imagesfield);
+            } else {
+                $f->label = $this->_("You must submit changes to the field above first");
+            }
+            $wrapper->add($f);
+        }
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->attr('name', 'includechildren');
+        $f->label = $this->_("Include child pages of above page as source for images?");
+        $f->description = $this->_('If checked, all child pages of above page will also supply images to the inputfield');
+        $f->attr('checked', $field->includechildren ? 'checked' : '');
+        $f->attr('value', $field->includechildren);
+        $f->showIf('frompages=1');
+        $wrapper->add($f);
+
+        $sourceswrapper->add($wrapper);
+
+        /* images from folder*/
+        $wrapper = new InputfieldFieldset;
+        $wrapper->label = $this->_("Pick images from a defined folder?");
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->attr('name', 'fromfolder');
+        $f->label = $this->_("Pick images from a defined folder?");
+        // $f->description = $this->_('If checked, all child pages of above page will serve images to the inputfield');
+        $f->attr('checked', $field->fromfolder ? 'checked' : '');
+        $f->attr('value', $field->fromfolder);
+        $wrapper->add($f);
+
         $f = $this->modules->get('InputfieldText');
-        $f->attr('name', 'folderPath');
-        $f->label = $this->_("The folder containing the files.");
-        $f->attr('value', $field->folderPath);
+        $f->attr('name', 'folderpath');
+        $f->label = $this->_("The folder containing the images.");
+        $f->attr('value', $field->folderpath);
         $f->description =
-            sprintf($this->_('A relative path relative to the **%s** folder.'), $this->config->urls->templates) .
-            ' ' .
-            sprintf($this->_('Leave blank for the **%s** folder.'), $this->config->urls->templates);
+            sprintf($this->_('A path relative to the **%s** folder.'), $this->config->urls->templates);
         $f->notes =
             $this->_("When the files are located in /site/templates/images/icons/, type: images/icons/");
         $f->getErrors(true);
-        if ($error) $f->error($error);
-        $inputfields->add($f);
+        if ($errorfolder) $f->error($errorfolder);
+        $f->showIf('fromfolder=1');
+        if ($field->fromfolder) $f->required(1);
+        if ($field->fromfolder && !$field->folderpath) $f->error('You must enter a folder path');
+        $wrapper->add($f);
+
+        $sourceswrapper->add($wrapper);
+
+        /* images from page*/
+        $wrapper = new InputfieldFieldset;
+        $wrapper->label = $this->_("Pick images from the page the field lives on?");
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->attr('name', 'frompage');
+        $f->label2 = $this->_("Pick from the page the field lives on?");
+        $f->skipLabel(4);
+        $f->description = $this->_('Images from the page that this field is on, will be supplied. The page must have an images field for this option to work.');
+        $f->attr('checked', $field->frompage ? 'checked' : '');
+        $f->attr('value', $field->frompage);
+        $wrapper->add($f);
+
+        $f = $this->modules->get('InputfieldRadios');
+        $f->attr('name', 'imagesfieldpage');
+        $f->optionColumns = 1;
+        $f->showIf('frompage=1');
+        $f->requiredIf('frompage=1');
+        if ($field->frompage) {
+            $f->label = $this->_("Choose an images field to use");
+            $f->description = $this->_('Images from this field will be supplied. For this option to work, the page must have this images field.');
+            $f->required(1);
+            $fields = $this->wire('fields')->find('type=FieldtypeImage');
+            $options = array();
+            foreach ($fields as $fd) $options[$fd->name] = $fd->name;
+            $f->options = $options;
+            $f->attr('value', $field->imagesfieldpage);
+        } else {
+            $f->label = $this->_("You must submit changes to the field above first");
+        }
+        $wrapper->add($f);
+
+        $sourceswrapper->add($wrapper);
+
+        $inputfields->add($sourceswrapper);
+
+        /* general settings */
+        $wrapper = new InputfieldFieldset;
+        $wrapper->label = $this->_("General settings");
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->attr('name', 'useajax');
+        $f->label = $this->_("Load thumbnails dynamically only when requested");
+        $f->description = $this->_('If checked, the thumbnail images will be loaded on demand. Especially useful when field is used inside repeaters or has many images');
+        $f->attr('checked', $field->useajax ? 'checked' : '');
+        $f->attr('value', $field->useajax);
+        // $inputfields->add($f);
+        $wrapper->add($f);
 
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'previewWidth');
-        $f->label = $this->_("Width of the selected image thumbnail in px");
+        $f->label = $this->_("Width of the selected image in px");
+        $f->description = $this->_('Sets the width of the selected image inside the inputfield, defaults to 200px');
         $f->attr('value', $field->previewWidth);
-        $inputfields->add($f);
+        // $inputfields->add($f);
+        $wrapper->add($f);
 
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'thumbWidth');
-        $f->label = $this->_("Width of the preview thumbnail images in px");
+        $f->label = $this->_("Width of thumbnail images in px");
+        $f->description = $this->_('Sets the width of the thumbnail images inside the input field, defaults to 100px');
         $f->attr('value', $field->thumbWidth);
-        $inputfields->add($f);
+        // $inputfields->add($f);
+        $wrapper->add($f);
+
+        $inputfields->add($wrapper);
 
         $f = $this->modules->get('InputfieldMarkup');
         $f->attr('name', 'FieldtypeImagePicker_instructions');
         $f->label = $this->_("How to use this field in a template");
         $f->attr('value', '<code>&lt;img src="&lt;?= $page->' . $field->name . '->url ?&gt;"&gt; // renders the image<br>
-        $page->' . $field->name . '->path // returns the full path on the disk<br>
-        $page->' . $field->name . '->content // returns the text content for inlining SVG (works only with SVG images)<br>
+        $page->' . $field->name . '->svgcontent // returns the text content for inlining SVG (works only with SVG images)<br><br>
+        All properties and methods for Pageimage can be used (resizing, cropping etc.)<br>
+        $thumb = $page->' . $field->name . '->width(100)<br><br>
+        Field is fully searchable for image filename by API<br>
+        $pages->find("' . $field->name . '.filename=xyz.png")
         </code>');
         $inputfields->add($f);
 
