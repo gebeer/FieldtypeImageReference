@@ -2,7 +2,7 @@
 
 namespace ProcessWire;
 /**
- * Inputfield 'Image Picker' provides a means for selecting images from a predefined page and it's children.
+ * Inputfield 'Image Picker' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
  * Per field you can set a page to list from.
  *
  * ©2019 Gerhard Sitzmann
@@ -284,7 +284,6 @@ class InputfieldImagePicker extends Inputfield implements Module
         // get files as pageimages
         $vPage = new ImagePickerVirtualpage($folder);
         $images = $vPage->virtualImages;
-        bd($images);
         if (!$images->count) {
             $markup = '<b>' . $this->_('There are no images. Upload images to folder') . ' ' . $baseUrl . '</b>';
         } else {

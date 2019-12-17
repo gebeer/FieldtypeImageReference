@@ -2,6 +2,9 @@
 
 namespace ProcessWire;
 
+/**
+ * sets up a virtual page that holds images inside a definded folder path
+ */
 class ImagePickerVirtualpage extends Page
 {
     protected $path;
@@ -30,7 +33,7 @@ class ImagePickerVirtualpage extends Page
         $fieldgroup = new Fieldgroup;
         $imgField = $this->wire('fields')->get("type=FieldtypeImage, maxFiles!=1");
         if ($imgField) $fieldgroup->add($imgField);
-        $fieldgroup->add($this->wire('fields')->get('title'));
+        // $fieldgroup->add($this->wire('fields')->get('title'));
         $template = new Template;
         $template->name = 'imagepickervirtualtemplate';
         $template->setFieldgroup($fieldgroup);
@@ -52,13 +55,6 @@ class ImagePickerVirtualpage extends Page
             if($variation) continue;
             $this->$imagefield->add($this->path . $file);
         }
-        // remove variations
-        // foreach($this->$imagefield->getAllVariations() as $variations) {
-        //     if(empty($variations)) continue;
-        //     foreach($variations as $filename) {
-        //         $this->$imagefield->remove($filename);
-        //     }
-        // }
     }
 
     /**
@@ -68,13 +64,12 @@ class ImagePickerVirtualpage extends Page
      * PW's hook handler handle it all. We're taking this approach since path() is a function that can feasibly
      * be called hundreds or thousands of times in a request, so we want it as optimized as possible.
      * 
-     * #pw-internal
-     *
      */
     public function path()
     {
         return $this->path;
     }
+
     /**
      * Returns the web accessible index URL where files are stored
      * 
@@ -89,8 +84,6 @@ class ImagePickerVirtualpage extends Page
     /**
      * Return instance of PagefilesManager specific to this Page
      * 
-     * #pw-group-advanced
-     *
      * @return PagefilesManager
      *
      */
@@ -101,6 +94,12 @@ class ImagePickerVirtualpage extends Page
     }
 }
 
+/**
+ * extends PagefilesManager
+ * provides path and url to a specified folder to PagefilesManager
+ * this path is used instead of the default path in /site/assets/files/
+ * the path is stored as property in the ImagePickerVirtualpage object
+ */
 class VirtualpageFilesManager extends PagefilesManager
 {
     protected $path;
@@ -113,8 +112,6 @@ class VirtualpageFilesManager extends PagefilesManager
     /**
      * Get the published path for files
      * 
-     * #pw-hooks
-     * 
      * @return string
      * @throws WireException if attempting to access this on a Page that doesn't yet exist in the database
      *
@@ -126,8 +123,6 @@ class VirtualpageFilesManager extends PagefilesManager
 
     /**
      * Get the published URL for files
-     * 
-     * #pw-hooks
      * 
      * @return string
      * @throws WireException if attempting to access this on a Page that doesn't yet exist in the database
@@ -142,10 +137,8 @@ class VirtualpageFilesManager extends PagefilesManager
     /**
      * Get the files path for a given page (whether it exists or not).
      * 
-     * #pw-group-static
-     *
      * @param Page $page
-     * @param bool $extended Whether to force use of extended paths, primarily for recursive use by this function only.
+     * @param bool $extended Whether to force use of extended paths, primarily for recursive use by this function only. not used here
      * @return string 
      *
      */
