@@ -154,17 +154,18 @@ class InputfieldImagePicker extends Inputfield implements Module
             // check if file belongs to imagespage or frompage
             $imagesfield = ($this->frompage && $this->hasPage && ($value->pageid == $this->hasPage->id)) ? $this->imagesfieldpage : $this->imagesfield;
             $image = $this->wire('pages')->get($value->pageid)->get($imagesfield)->getFile($value->filename);
-            $url = ($image) ? $image->width($previewWidth)->url : $blankSrc;
         } elseif ((int) $value->pageid === 0 && $value->filename) {
             // image from folder
-            $image = $value->filename;
-            $url = $this->wire('config')->urls->templates . $this->folderpath . $image;
-
+            $folderpath = $this->wire('config')->paths->templates . $this->folderpath;
+            $vPage = new ImagePickerVirtualpage($folderpath);
+            $image = $vPage->virtualImages->getFile($value->filename);
+            
         } elseif ((int) $value->pageid === 0 && empty($value->filename)) {
             // empty image
             $image = null;
             $url = $blankSrc;
         }
+        $url = ($image) ? $image->width($previewWidth)->url : $blankSrc;
         $info = ($image) ? $this->renderTooltip($image) : '';
         $out = "<div class='uk-panel uk-panel-box uk-margin-bottom'>
         <span class='fa fa-trash' uk-tooltip='title: Remove Image'></span>
@@ -277,7 +278,6 @@ class InputfieldImagePicker extends Inputfield implements Module
      */
     public function getThumbnailsForFolder($folderpath)
     {
-
         $folder = $this->wire('config')->paths->templates . $folderpath;
         $baseUrl = $this->wire('config')->urls->templates . $folderpath;
 
@@ -307,19 +307,6 @@ class InputfieldImagePicker extends Inputfield implements Module
     public function renderTooltip($img)
     {
         if(is_null($img)) return '';
-        // if(is_string($img)) {
-        //     $filepath = $this->wire('config')->paths->templates . $this->folderpath . $img;
-        //     $basename = $img;
-        //     list($width, $height, $type) = getimagesize($filepath);
-        //     $img = new \stdClass;
-        //     $img->basename = $basename;
-        //     $img->description = '';
-        //     $img->width = $width;
-        //     $img->height = $height;
-        //     $img->filesizeStr = $this->formatBytes(filesize($filepath));
-        //     $img->ext = pathinfo($filepath, PATHINFO_EXTENSION);
-
-        // }
         $out = $img->basename;
         if ($img->description) $out .= '<br>' . $img->description;
         $out .= '<br>' . $img->filesizeStr;
