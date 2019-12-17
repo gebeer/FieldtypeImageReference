@@ -9,7 +9,7 @@
 
 .InputfieldImagePicker .uk-panel {
     border: 1px solid #d9e1ea;
-    padding: 20px;
+    padding: 25px;
     min-width: 100px;
     display: inline-block;
     position: relative;
@@ -22,3 +22,20 @@
     cursor: pointer;
 }
 
+.InputfieldImagePicker .uk-panel > div {
+	background-color: #eee;
+	padding: 10px;
+	font-size: .75rem;
+    margin-top: 1rem;
+    word-wrap: break-word;
+}
+
+.InputfieldImagePicker .InputfieldMarkup  .InputfieldContent {
+    position: relative;
+}
+
+.InputfieldImagePicker .InputfieldMarkup  .InputfieldContent .imagepicker_editimages {
+    position: absolute;
+    right: 50px;
+    top: -40px;
+}

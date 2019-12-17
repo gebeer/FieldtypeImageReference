@@ -1,0 +1,183 @@
+<?php
+
+namespace ProcessWire;
+
+// todos: open inputfield in repeaters on page edit load
+
+class ImagePickerHookHelper extends WireData implements Module
+{
+    /**
+     * Return an array of module information
+     *
+     * @return array
+     */
+    public static function getModuleInfo()
+    {
+        return array(
+            'title' => 'Hook Helper Module for FieldtypeImagePicker',
+            'version' => 101,
+            'summary' => __('Adds hooks to Pagefiles to restrict deletion of images that are used by FieldtypeImagePicker.'),
+            'author' => 'Gerhard Sitzmann',
+            'href' => '',
+            'autoload' => true,
+            'requires' => array(
+                'FieldtypeImagePicker',
+                'PHP>=7.1.0',
+                'ProcessWire>=3.0.120'
+            )
+        );
+    }
+
+    public function init()
+    {
+
+        $this->addHookBefore('Pagefiles::delete', $this, 'preventDeletion');
+        // $this->addHookBefore('InputfieldFile::processInputDeleteFile', $this, 'preventMessage');
+        // todo: prevent falsy message that file has been deleted. how to remove message from session from within hook function?
+
+        // load page in page edit process
+        // $this->addHookBefore('ProcessPageEdit::loadPage', $this, 'loadImagePickerVirtualpage');
+    }
+
+    /**
+     * Executes before an image gets deleted that lives on a page which holds images for FieldtypeImagePicker
+     * If references to that image are found on other pages, deletion is prevented and error messages are shown.
+     *
+     * @param Hookevent $event
+     * @return void
+     */
+    public function preventDeletion(Hookevent $event)
+    {
+        $thisFieldname = $event->object->field;
+        // get fields of type imagepicker that have this imagesfield assigned
+        $fields = $this->getRelevantFields($thisFieldname);
+        $deleted = $event->arguments(0);
+        $editPage = $deleted->page;
+        $imagePageIds = $this->getImagePageIds($fields, $editPage);
+        $pageid = $deleted->page->id;
+        if (!in_array($pageid, $imagePageIds)) return;
+        $filename = $deleted->basename;
+        $fieldnames = array_map(function ($f) {
+            return $f->name;
+        }, $fields);
+        $pagelist = '';
+        foreach ($fieldnames as $name) {
+            $pages = $this->wire('pages')->find("{$name}.filename={$filename}, {$name}.pageid={$pageid}, include=all");
+            if ($pages->count) {
+                $label = $pages->first()->getField($name)->label;
+                $pagelist .= "Remove image from field: <em>{$label}</em> on following pages:<br>";
+                $pagelist .= '<ul>';
+                foreach ($pages as $p) {
+                    $urlParam = "&field={$name}";
+                    if (strpos($p->template->name, 'repeater_') !== false) { // case page is a repeaterpage
+                        // $field = $p->getField($name);
+                        // $inputfield = $field->getInputfield($p);
+                        $repeaterfieldName = substr($p->template->name, strlen('repeater_'));
+                        $urlParam = "&field={$repeaterfieldName}";
+                    }
+                    $p = $this->getPageToEdit($p);
+                    $pagelist .= "<li>Page title: <em>{$p->title}</em>, Page path: <em>{$p->path}</em> &nbsp;<a href='{$p->editUrl}{$urlParam}' title='Edit page in new tab' target='_blank'><strong>Edit page</strong></a></li>";
+                }
+                $pagelist .= '</ul>';
+            }
+        }
+        if ($pagelist) {
+            $message = sprintf(
+                $this->_('You cannot delete image %s as it is being used on other pages.'),
+                "<em>{$filename}</em>"
+            ) . '<br>';
+            $message .= "{$pagelist}<br>";
+            $message .= 'After all references are removed, you may delete the image';
+            $imgInput = $event->object->field->getInputfield($event->object->page);
+            $this->error($message, Notice::allowMarkup);
+            $imgInput->error($this->_('Image cannot be deleted (follow instructions at the top)'), Notice::allowMarkup);
+            $event->replace = true; // prevents deletion
+        }
+    }
+
+    /**
+     * loads an instance of ImagePickerVirtualpage into page edit screen
+     *
+     * @param Hookevent $event
+     * @return Page ImagePickerVirtualpage object
+     */
+    // public function loadImagePickerVirtualpage(Hookevent $event) {
+    //     $id = $event->arguments(0);
+    //     $imagepickerfield = $this->wire('input')->imagepickerfield;
+    //     if(!$imagepickerfield) return;
+    //     if($id != 999999999) return;
+    //     $event->replace = true;
+    //     $path = $this->wire('config')->paths->templates . $this->wire('fields')->get($imagepickerfield)->folderpath;
+    //     $vPage = new ImagePickerVirtualpage($path);
+    //     $event->return = $vPage;
+
+    // }
+
+    /**
+     * prevent processing of delete request to avoid falsy session notification about deletion 
+     *
+     * @param Hookevent $event
+     * @return void
+     */
+    public function preventMessage(Hookevent $event)
+    {
+        $this->wire('session')->removeNotices();
+    }
+
+    /**
+     * Collects IDs of all pages and their children that  hold images for fields of type FieldtypeImagePicker
+     *
+     * @param array $fields all relevant fields of type FieldtypeImagePicker
+     * @param Page $editPage page that is being edited
+     * @return array array of page ids
+     */
+    public function getImagePageIds($fields, $editPage)
+    {
+        $ids = array();
+        foreach ($fields as $f) {
+            $ids[] = $f->imagespage;
+        }
+        $pages = $this->wire('pages')->find($ids, array('include' => 'hidden'));
+        foreach ($fields as $field) {
+            if ($field->includechildren) {
+                foreach ($pages as $p) {
+                    $pages->add($p->children('include=all'));
+                }
+            }
+            if($field->frompage) $pages->add($editPage);
+        }
+
+        return $pages->explode('id');
+    }
+
+    /**
+     * get names of imagepicker fields that have an imagesfield with name $imagesfield assigned
+     *
+     * @param string $imagesfield name of the imagesfield
+     * @return array array of fields of type FieldtypeImagePicker
+     */
+    public function getRelevantFields($imagesfield)
+    {
+        $fields = array();
+        foreach ($this->wire('fields') as $f) {
+            if ($f->type instanceof FieldtypeImagePicker && ($f->imagesfield == $imagesfield || $f->imagesfieldpage == $imagesfield)) $fields[] = $f;
+        }
+        return $fields;
+    }
+
+    /**
+     * checks if $page is a repeaterpage and travels up the $page's parents until it is not a repeater page
+     * used so that editors are not presented with links to internal repeater pages
+     *
+     * @param Page $page
+     * @return Page
+     */
+    public function getPageToEdit($page)
+    {
+        if (strpos($page->template->name, 'repeater_') === false) return $page;
+        while (strpos($page->template->name, 'repeater_') !== false) {
+            $page = $page->getForPage();
+        }
+        return $page;
+    }
+}
