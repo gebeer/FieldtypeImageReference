@@ -48,7 +48,7 @@ class InputfieldImagePicker extends Inputfield {
         $folderPath = trim(trim($this->folderPath), '/') . "/";
 		$folder = $this->config->paths->templates . $folderPath;
         $baseUrl = $this->config->urls->templates . $folderPath;
-
+        $name = $this->attr('name');
 		if(!is_dir($folder)) {
             $this->error($this->_("Path to files is invalid"));
             return;
@@ -56,7 +56,7 @@ class InputfieldImagePicker extends Inputfield {
         
         $out = '';
         $blankSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mN89x8AAuEB74Y0o2cAAAAASUVORK5CYII=';
-        $icon = $this->hasPage->icon;
+        $icon = $this->hasPage->$name;
         $url = ($icon) ? $baseUrl . $icon : $blankSrc;
         $previewWidth = ($this->previewWidth) ? $this->previewWidth : 75;
         $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 75;
