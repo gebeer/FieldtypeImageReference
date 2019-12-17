@@ -446,15 +446,14 @@ class FieldtypeImagePicker extends Fieldtype
             $this->wire('log')->save('modules', 'installed module ImagePickerHookHelper');
 
             // update field settings
-            $fields = $this->wire('fields')->find('type=FieldtypeImagePicker');
             var_dump($fields);
             foreach ($this->wire('fields') as $field) {
-                if($field->type != 'FieldtypeImagePicker') continue;
+                if(!$field->type instanceof FieldtypeImagePicker) continue;
                 $field->set('folderpath', $field->get('folderPath'));
                 $field->set('folderPath', 'deprecated');
                 $field->set('fromfolder', 1);
                 $field->save();
-                $this->wire('log')->save('modules', 'updated field setting');
+                $this->wire('log')->save('modules', "updated field {$field->name} settings");
             }
         }
     }
