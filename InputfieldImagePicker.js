@@ -28,7 +28,7 @@ var InputfieldImagePicker = {
             var filename = file.getAttribute('data-filename');
             var pageid = file.getAttribute('data-pageid');
             preview.setAttribute('src', src);
-            inputValue.value = JSON.stringify({ "pageid": toString(pageid), "filename": filename });
+            inputValue.value = JSON.stringify({ "pageid": pageid.toString(), "filename": filename });
             caption.innerHTML = fileinfo;
         });
     },
