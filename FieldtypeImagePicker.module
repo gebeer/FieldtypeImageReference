@@ -433,6 +433,21 @@ class FieldtypeImagePicker extends Fieldtype
         return $query;
     }
 
+    public function ___upgrade($fromVersion, $toVersion) {
+        bd($fromVersion, 'fromVersion');
+        bd($toVersion, 'toVersion');
+        if (version_compare($fromVersion, $toVersion == -1)) {
+            bd('upgrade');
+            $fields = $this->wire('fields')->find('type=FieldtypeImagePicker');
+            foreach ($fields as $field) {
+                $field->set('folderpath', $field->get('folderPath'));
+                $field->set('folderPath', 'deprecated');
+                $field->set('fromfolder', 1);
+                $field->save();
+            }
+        }
+    }
+
     /**
      * Get the inputfield used for configuration of this Fieldtype.
      *
