@@ -368,10 +368,10 @@ class FieldtypeImagePicker extends Fieldtype
                 $query->execute();
                 if (!$query->rowCount()) try {
                     $database->exec("ALTER TABLE `$table` ADD COLUMN `pageid` INT NOT NULL AFTER data");
-                    $database->exec("ALTER TABLE `$table` ADD INT(`pageid`)");
+                    $database->exec("ALTER TABLE `$table` ADD INDEX `pageid` (`pageid`)");
                     $this->message("Added 'pageid' column to '$field->table'");
-                    $database->exec("UPDATE `$table` SET pageid=0");
-                    $this->message("filled 'pageid' values with 0");
+                    // $database->exec("UPDATE `$table` SET pageid=0");
+                    // $this->message("filled 'pageid' values with 0");
                 } catch (\Exception $e) {
                     $this->error($e->getMessage());
                 }
