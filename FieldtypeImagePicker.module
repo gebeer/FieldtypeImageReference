@@ -438,7 +438,7 @@ class FieldtypeImagePicker extends Fieldtype
     public function ___upgrade($fromVersion, $toVersion) {
         var_dump($fromVersion);
         var_dump($toVersion);
-        // if (version_compare($fromVersion, $toVersion == -1)) {
+        if (version_compare($fromVersion, $toVersion == -1)) {
             $modules = $this->wire('modules');
             // install helper module
             if(!$modules->isInstalled('ImagePickerHookHelper')) $modules->install('ImagePickerHookHelper');
@@ -454,7 +454,7 @@ class FieldtypeImagePicker extends Fieldtype
                 $field->save();
                 $this->wire('log')->save('modules', "updated field {$field->name} settings");
             }
-        // }
+        }
     }
 
     /**
