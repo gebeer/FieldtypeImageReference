@@ -397,6 +397,8 @@ class FieldtypeImagePicker extends Fieldtype
         }
 
         $field->set('schemaVersion', $schemaVersion);
+        $field->set('folderpath', $field->get('folderPath'));
+        $field->set('fromfolder', 1);
         $field->save();
         $this->wire('log')->save('modules','updated DB table');
 
