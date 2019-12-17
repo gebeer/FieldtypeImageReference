@@ -298,23 +298,6 @@ class InputfieldImagePicker extends Inputfield implements Module
         }
 
         return $markup;
-
-        // get files the as array of filenames
-        $files = $this->wire('files')->find($folder, array('returnRelative' => true));
-        if(!count($files)) {
-            $markup = '<b>' . $this->_('There are no images. Upload images to folder') . ' ' . $baseUrl . '</b>';
-        } else {
-            $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
-            $markup = '';
-            foreach($files as $f) {
-                $src = $baseUrl . $f;
-                $tooltip = $this->renderTooltip($f);
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'>
-                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$f}' src='{$baseUrl}{$f}' alt='{$f}'  uk-tooltip='{$tooltip}'>
-                </li>";
-            }
-        }
-        return $markup;
     }
 
     /**
@@ -324,6 +307,7 @@ class InputfieldImagePicker extends Inputfield implements Module
     public function renderTooltip($img)
     {
         if(is_null($img)) return '';
+        bd($img);
         if(is_string($img)) {
             $filepath = $this->wire('config')->paths->templates . $this->folderpath . $img;
             $basename = $img;
