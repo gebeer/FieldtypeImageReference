@@ -398,7 +398,7 @@ class FieldtypeImagePicker extends Fieldtype
 
         $field->set('schemaVersion', $schemaVersion);
         $field->save();
-        $this->wire('log')->save('updated DB table');
+        $this->wire('log')->message('updated DB table');
 
     }
 
@@ -436,14 +436,14 @@ class FieldtypeImagePicker extends Fieldtype
     }
 
     public function ___upgrade($fromVersion, $toVersion) {
-        bd($fromVersion, 'fromVersion');
-        bd($toVersion, 'toVersion');
+        var_dump($fromVersion);
+        var_dump($toVersion);
         if (version_compare($fromVersion, $toVersion == -1)) {
-            bd('upgrade');
+            var_dump('upgrade');
             $modules = $this->wire('modules');
             // install helper module
             if(!$modules->isInstalled('ImagePickerHookHelper')) $modules->install('ImagePickerHookHelper');
-            $this->wire('log')->save('installed module ImagePickerHookHelper');
+            $this->wire('log')->message('installed module ImagePickerHookHelper');
 
             // update field settings
             $fields = $this->wire('fields')->find('type=FieldtypeImagePicker');
@@ -453,7 +453,7 @@ class FieldtypeImagePicker extends Fieldtype
                 $field->set('fromfolder', 1);
                 $field->save();
             }
-            $this->wire('log')->save('updated field setting');
+            $this->wire('log')->message('updated field setting');
         }
     }
 
