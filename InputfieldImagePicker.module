@@ -34,7 +34,7 @@ class InputfieldImagePicker extends Inputfield implements Module
     public static function getModuleInfo()
     {
         return array(
-            'title' => 'Image Picker Inputfield',
+            'title' => 'Image Picker',
             'version' => 110,
             'summary' => __('Inputfield to select a single image from images on a predefined page and it\'s children.'),
             'author' => 'Gerhard Sitzmann',
@@ -63,7 +63,6 @@ class InputfieldImagePicker extends Inputfield implements Module
         // populate imagepages 
         $pages = new PageArray;
         if($this->imagespage) $pages->add($this->getImagePages());
-        if($this->frompage && $this->hasPage) $pages->add($this->hasPage);
         $this->imagePages = $pages;
     }
 
@@ -323,12 +322,15 @@ class InputfieldImagePicker extends Inputfield implements Module
      */
     public function getImagePages()
     {
+        // parent and children of chosen page
         $pages = $this->wire('pages')->find($this->imagespage, array('include' => 'hidden'));
         if ($this->includechildren) {
             foreach ($pages->first()->children('include=hidden') as $child) {
                 if ($child->hasField($this->imagesfield)) $pages->add($child);
             }
         }
+        // page the field lives on
+        if($this->frompage && $this->hasPage && $this->hasPage->hasField($this->imagesfieldpage)) $pages->add($this->hasPage);
         return $pages;
     }
 
