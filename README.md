@@ -26,7 +26,7 @@ $pages->find('fieldname.filename=xyz.png');
 $pages->find('fieldname.filename%=xy.png');
 ```
 * Accidental image deletion is prevented. When you want to delete an image from one of the pages that hold your site-wide images, the module searches all pages that use that image. If any page contains a reference to the image you are trying to delete, deletion will be prevented. You will get an error message with links to help you edit those pages and remove references there before you can finally delete the image.
-* This field type can be used with [marcrura's Settings Factory module(https://modules.processwire.com/modules/settings-factory/)] to store images on settings pages, which was not possible with other image field types
+* This field type can be used with [marcrura's Settings Factory module](https://modules.processwire.com/modules/settings-factory/) to store images on settings pages, which was not possible with other image field types
 
 ### Settings / Options
 * The page containing the images to choose from.
