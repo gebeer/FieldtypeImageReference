@@ -1,38 +1,20 @@
 # FieldtypeImagePicker & InputfieldImagePicker
 
-**Fieldtype Image Picker** is a Fieldtype that stores a reference to a single image from another page and opyionally it's children, and/or from a folder and/or from the page that the field lives on. The image can be selected with the associated Inputfield.
+**Fieldtype Image Picker** is a Fieldtype that stores a reference to a single image from another page and optionally its children, and/or from a folder and/or from the page that the field lives on. The image can be selected with the associated Inputfield.
 
-**Inputfield Image Picker** is an Inputfield to select a single image from images on another page and opyionally it's children, and/or from a folder and/or from the page that the field lives on.
+**Inputfield Image Picker** is an Inputfield to select a single image from images on another page and optionally its children, and/or from a folder and/or from the page that the field lives on.
 
 ![Inputfield in page edior](images/inputfield-in-editor.png)
 You can upload/edit images to other pages from within the input field
 ![Upload images to other pages from within field](images/upload-edit-from-field.png)
 
-### Settings / Options
-
-* The page containing the images to choose from.
-    - images from that page and optionally it's child pages will be used as site-wide images.
-* The field name of the images field on that page.
-* Option to include images from child pages of the page that contains images
-* A folder containing the images to choose from
-* Option to also include the images from the page that this field lives on
-* Option to load thumbnails on demand via ajax. Especially useful when field is used inside repeaters or has many images
-* Width of chosen image in Inputfield.
-* Width of image thumbnails in Inputfield.
-
-![Inputfield Settings](images/field-settings.png)
-
-All settings are per field that you create from this fieldtype. This means you can have different images to choose from for different fields that you create.
-
 ### When to use ?
-
 If you want to let editors choose an image from a set of images that is being used site-wide. Ideal for images that are being re-used across the site (e.g. icons, but not limited to that).
 Other than the native ProcessWire images field, the images here are not stored per page. Only references to images that live on other pages or inside a folder are stored. This has several advantages:
 * one central place to organize images
 * when images change, you only have to update them in one place. All references will be updated, too. (Provided the name of the image that has changed stays the same)
 
 ### Features
-
 * Images can be loaded from a folder inside site/templates/
 * Images can be loaded from other pages
 * Images can be organized into categories. Child pages of the main 'image source page' serve as categories
@@ -46,7 +28,20 @@ $pages->find('fieldname.filename%=xy.png');
 * Accidental image deletion is prevented. When you want to delete an image from one of the pages that hold your site-wide images, the module searches all pages that use that image. If any page contains a reference to the image you are trying to delete, deletion will be prevented. You will get an error message with links to help you edit those pages and remove references there before you can finally delete the image.
 * This field type can be used with [marcrura's Settings Factory module(https://modules.processwire.com/modules/settings-factory/)] to store images on settings pages, which was not possible with other image field types
 
+### Settings / Options
+* The page containing the images to choose from.
+    - images from that page and optionally it's child pages will be used as site-wide images.
+* The field name of the images field on that page.
+* Option to include images from child pages of the page that contains images
+* A folder containing the images to choose from
+* Option to also include the images from the page that this field lives on
+* Option to load thumbnails on demand via ajax. Especially useful when field is used inside repeaters or has many images
+* Width of chosen image in Inputfield.
+* Width of image thumbnails in Inputfield.
 
+![Inputfield Settings](images/field-settings.png)
+
+All settings are per field that you create from this fieldtype. This means you can have different images to choose from for different fields that you create.
 
 ### How to install and setup
 1. [Download](https://github.com/gebeer/FieldtypeImagePicker/archive/master.zip) and install or [install from URL](https://github.com/gebeer/FieldtypeImagePicker/archive/master.zip) the module like any other modules in ProcessWire
@@ -67,7 +62,6 @@ $pages->find('fieldname.filename%=xy.png');
 16. You are now ready to use the field
 
 ### How to use in template files
-
 ```php
 // render image 
 <img src="<?= $page->fieldname->url ?>"> 
