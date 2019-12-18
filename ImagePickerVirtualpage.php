@@ -53,7 +53,9 @@ class ImagePickerVirtualpage extends Page
             // skip if image is a variation 
             $variation = $pageimage->isVariation($file, array('allowSelf' => true));
             if($variation) continue;
-            $this->$imagefield->add($this->path . $file);
+            // add custom propery svgcontent
+            if(strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImagePicker::getFileContent($pageimage));
+            $this->$imagefield->add($pageimage/* $this->path . $file */);
         }
     }
 

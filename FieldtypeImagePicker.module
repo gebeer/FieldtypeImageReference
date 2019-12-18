@@ -129,7 +129,7 @@ class FieldtypeImagePicker extends Fieldtype
         } elseif ($value->filename && $value->pageid !== 0) { // Pageimage
             $pageimage = $this->wire('pages')->get($value->pageid)->get($field->imagesfield)->getFile($value->filename);
             if ($pageimage && $pageimage instanceof Pageimage) {
-                $this->addHookProperty("Pageimage::svgcontent", $this, 'addPropertySvgcontent');
+                if(strtolower($pageimage->ext) == 'svg') $this->addHookProperty("Pageimage::svgcontent", $this, 'addPropertySvgcontent');
                 return $pageimage;
             }
         }
@@ -235,10 +235,10 @@ class FieldtypeImagePicker extends Fieldtype
      * @return mixed string|null
      * @throws WireException
      */
-    public function getFileContent($image)
+    static public function getFileContent($image)
     {
         $mimeTypes = ['image/svg', 'image/svg+xml'];
-        if (strtolower($image->ext) !== 'svg' || !in_array($this->getFileMimetype($image), $mimeTypes)) {
+        if (strtolower($image->ext) !== 'svg' || !in_array(self::getFileMimetype($image), $mimeTypes)) {
             return null;
         } else {
             $doc = new \DOMDocument;
@@ -259,7 +259,7 @@ class FieldtypeImagePicker extends Fieldtype
      * @param Pageimage $image
      * @return string 
      */
-    public function getFileMimetype($image)
+    static public function getFileMimetype($image)
     {
         return mime_content_type($image->filename);
     }
@@ -272,7 +272,7 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function ___addPropertySvgcontent(Hookevent $event)
     {
-        $event->return = $this->getFileContent($event->object);
+        $event->return = self::getFileContent($event->object);
     }
 
     /**
@@ -396,8 +396,11 @@ class FieldtypeImagePicker extends Fieldtype
         }
 
         $field->set('schemaVersion', $schemaVersion);
-        $field->set('folderpath', $field->get('folderPath'));
-        $field->set('fromfolder', 1);
+        // @todo: this should go into ___update() but it is ot being triggered there
+        if($field->get('folderPath')) {
+            $field->set('folderpath', $field->get('folderPath'));
+            $field->set('fromfolder', 1);
+        }
         $field->save();
         $this->wire('log')->save('modules', 'updated DB table');
     }

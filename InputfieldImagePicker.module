@@ -61,9 +61,7 @@ class InputfieldImagePicker extends Inputfield implements Module
         }
 
         // populate imagepages 
-        $pages = new PageArray;
-        if($this->imagespage) $pages->add($this->getImagePages());
-        $this->imagePages = $pages;
+        $this->imagePages = $this->getImagePages();
     }
 
     /**
@@ -322,8 +320,10 @@ class InputfieldImagePicker extends Inputfield implements Module
      */
     public function getImagePages()
     {
+        $pages = new PageArray;
+        
         // parent and children of chosen page
-        $pages = $this->wire('pages')->find($this->imagespage, array('include' => 'hidden'));
+        if($this->imagespage) $pages->add($this->wire('pages')->find($this->imagespage, array('include' => 'hidden')));
         if ($this->includechildren) {
             foreach ($pages->first()->children('include=hidden') as $child) {
                 if ($child->hasField($this->imagesfield)) $pages->add($child);
