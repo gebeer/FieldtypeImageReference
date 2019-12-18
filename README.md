@@ -80,7 +80,11 @@ $pages->find('fieldname.filename=xyz.png');
 $pages->find('fieldname.pageid=1234');
 ```
 
-[ProcessWire forum thread](https://processwire.com/talk/topic/22665-module-imagepicker-pick-images-from-various-sources/)
+### [ProcessWire forum thread](https://processwire.com/talk/topic/22665-module-imagepicker-pick-images-from-various-sources/)
 
 ### Credits
 This module was developed based on ideas from forum members in [this forum thread](https://processwire.com/talk/topic/22732-fieldtypeimagefrompage-pick-an-image-from-various-sources/)
+
+### Roadmap
+* allow to chose multiple fields where source images are stored
+* upload widget for images in folder
