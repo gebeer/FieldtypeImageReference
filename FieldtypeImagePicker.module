@@ -114,19 +114,9 @@ class FieldtypeImagePicker extends Fieldtype
     {
         $value = json_decode($value);
         if ($value->filename && (int) $value->pageid === 0) { // image from folder
-            // virtual page with property virtualImages that holds virtual Pageimages for this folder
-            $vPage = new ImagePickerVirtualpage($this->getBasePath($field->folderpath));
-            if (!$vPage instanceof NullPage) {
-                $pageimage = $vPage->virtualImages->getFile($value->filename);
-                return $pageimage;
-            }
+            $pageimages = self::getPageimages($field->folderpath);
+            return $pageimages->getFile($value->filename);
 
-            // $file = new ImagePickerFile;
-            // $file->set('filename', $this->getFilepath($page, $field, $value));
-            // $file->set('url', $this->getFileURL($field, $value));
-            // $file->set('content', $this->getFileContent($page, $field, $value));
-            // $file->set('ext', pathinfo($file->get('filename'), PATHINFO_EXTENSION));
-            // return $file;
         } elseif ($value->filename && $value->pageid !== 0) { // Pageimage
             $pageimage = $this->wire('pages')->get($value->pageid)->get($field->imagesfield)->getFile($value->filename);
             if ($pageimage && $pageimage instanceof Pageimage) {
@@ -137,6 +127,33 @@ class FieldtypeImagePicker extends Fieldtype
         return null;
     }
 
+    /**
+     * creates and returns a virtual Pageimages object with all folder images added as Pageimage
+     *
+     * @param string $folderpath can bei either full or partial disk path 
+     * @return Pageimages
+     */
+    static public function getPageimages($folderpath) {
+        // make sure $folderpath is full disk path 
+        if(!is_dir(DIRECTORY_SEPARATOR . trim($folderpath, '/'))) $folderpath = self::getBasePath($folderpath);
+
+        $p = new ImagePickerVirtualpage($folderpath);
+        $field = new Field;
+        $field->type = new FieldtypeImage;
+        $field->name = 'imagepickervirtualfield';
+        // $field->id = 0;
+        $pageimages = new Pageimages($p);
+        $pageimages->setField($field);
+        $pageimages->setTrackChanges(true);
+        foreach(wire('files')->find($folderpath) as $file) {
+            $pageimage = new Pageimage($pageimages, $file);
+            $variation = $pageimage->isVariation(pathinfo($file, PATHINFO_BASENAME), array('allowSelf' => true, 'verbose' => false));
+            if($variation) continue; // add only originals
+            if(strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImagePicker::getFileContent($pageimage)); // if svg, add custom property
+            $pageimages->add($pageimage);
+        }
+        return $pageimages;
+    }
 
     /**
      * Return full disk path to file
@@ -147,8 +164,8 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function getFilepath(Page $page, Field $field, $value)
     {
-        $filePath = $this->getBasePath($field->folderpath) . $value->filename;
-        $fileUrl = $this->getFileUrl($field, $value);
+        $filePath = self::getBasePath($field->folderpath) . $value->filename;
+        $fileUrl = self::getFileUrl($field->folderpath, $value->filename);
         if (file_exists($filePath)) {
             return $filePath;
         } else {
@@ -162,20 +179,20 @@ class FieldtypeImagePicker extends Fieldtype
      * @param string $folderpath
      * @return string disk path
      */
-    public function getBasePath($folderpath)
+    static public function getBasePath($folderpath)
     {
-        return $this->wire('config')->paths->templates . $folderpath;
+        return wire('config')->paths->templates . $folderpath;
     }
 
     /**
      * Return file URL
-     * @param Field $field
-     * @param string $value
+     * @param string $folderpath relative path to folder
+     * @param string $basename file basename
      * @return string 
      */
-    public function getFileUrl(Field $field, $value)
+    static public function getFileUrl($folderpath, $basename)
     {
-        return $this->wire('config')->urls->templates . $field->folderpath . $value->filename;
+        return $this->wire('config')->urls->templates . $folderpath . $basename;
     }
 
     /**

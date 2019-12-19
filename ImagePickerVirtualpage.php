@@ -30,19 +30,19 @@ class ImagePickerVirtualpage extends Page
     
     protected function initPage()
     {
-        $fieldgroup = new Fieldgroup;
-        $imgField = $this->wire('fields')->get("type=FieldtypeImage, maxFiles!=1");
-        if ($imgField) $fieldgroup->add($imgField);
+        // $fieldgroup = new Fieldgroup;
+        // $imgField = $this->wire('fields')->get("type=FieldtypeImage, maxFiles!=1");
+        // if ($imgField) $fieldgroup->add($imgField);
         // $fieldgroup->add($this->wire('fields')->get('title'));
         $template = new Template;
         $template->name = 'imagepickervirtualtemplate';
-        $template->setFieldgroup($fieldgroup);
+        // $template->setFieldgroup($fieldgroup);
         $this->set('template', $template);
         // $this->set('title', "Images in folder {$this->url()}");
         $this->set('name', 'imagepickervirtualpage');
         $this->set('id', 0);
-        $this->populateImages($imgField->name);
-        $this->virtualImages = $this->get($imgField->name);
+        // $this->populateImages($imgField->name);
+        // $this->virtualImages = $this->get($imgField->name);
     }
     
     protected function populateImages($imagefield)
