@@ -30,7 +30,7 @@ class FieldtypeImagePicker extends Fieldtype
     {
         return array(
             'title' => __('Image Picker Fieldtype'),
-            'version' => 111,
+            'version' => 112,
             'summary' => __('Fieldtype that stores a reference to a single image from another page and/or from a folder'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
@@ -116,11 +116,10 @@ class FieldtypeImagePicker extends Fieldtype
         if ($value->filename && (int) $value->pageid === 0) { // image from folder
             $pageimages = self::getPageimages($field->folderpath);
             return $pageimages->getFile($value->filename);
-
         } elseif ($value->filename && $value->pageid !== 0) { // Pageimage
             $pageimage = $this->wire('pages')->get($value->pageid)->get($field->imagesfield)->getFile($value->filename);
             if ($pageimage && $pageimage instanceof Pageimage) {
-                if(strtolower($pageimage->ext) == 'svg') $this->addHookProperty("Pageimage::svgcontent", $this, 'addPropertySvgcontent');
+                if (strtolower($pageimage->ext) == 'svg') $this->addHookProperty("Pageimage::svgcontent", $this, 'addPropertySvgcontent');
                 return $pageimage;
             }
         }
@@ -133,9 +132,10 @@ class FieldtypeImagePicker extends Fieldtype
      * @param string $folderpath can bei either full or partial disk path 
      * @return Pageimages
      */
-    static public function getPageimages($folderpath) {
+    static public function getPageimages($folderpath)
+    {
         // make sure $folderpath is full disk path 
-        if(!is_dir(DIRECTORY_SEPARATOR . trim($folderpath, '/'))) $folderpath = self::getBasePath($folderpath);
+        if (!is_dir(DIRECTORY_SEPARATOR . trim($folderpath, '/'))) $folderpath = self::getBasePath($folderpath);
 
         $p = new ImagePickerVirtualpage($folderpath);
         $field = new Field;
@@ -145,11 +145,11 @@ class FieldtypeImagePicker extends Fieldtype
         $pageimages = new Pageimages($p);
         $pageimages->setField($field);
         $pageimages->setTrackChanges(true);
-        foreach(wire('files')->find($folderpath) as $file) {
+        foreach (wire('files')->find($folderpath) as $file) {
             $pageimage = new Pageimage($pageimages, $file);
             $variation = $pageimage->isVariation(pathinfo($file, PATHINFO_BASENAME), array('allowSelf' => true, 'verbose' => false));
-            if($variation) continue; // add only originals
-            if(strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImagePicker::getFileContent($pageimage)); // if svg, add custom property
+            if ($variation) continue; // add only originals
+            if (strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImagePicker::getFileContent($pageimage)); // if svg, add custom property
             $pageimages->add($pageimage);
         }
         return $pageimages;
@@ -217,8 +217,7 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function ___wakeupValue(Page $page, Field $field, $value)
     {
-        $obj = json_decode($value['data']);
-        return $this->toJson($obj->pageid, $obj->filename);
+        return $this->toJson($value['pageid'], $value['data']);
     }
 
     /**
@@ -238,9 +237,8 @@ class FieldtypeImagePicker extends Fieldtype
         $pageid = $this->wire('sanitizer')->int($obj->pageid);
 
         $sleepValue = array(
-            'filename' => $filename,
-            'pageid' => $pageid,
-            'data' => $this->toJson($pageid, $filename)
+            'data' => $filename,
+            'pageid' => $pageid
         );
 
         return $sleepValue;
@@ -317,21 +315,20 @@ class FieldtypeImagePicker extends Fieldtype
     public function getDatabaseSchema(Field $field)
     {
 
-        // do not get the default schema because it assigns an index and key to data column which is not allowed for JSON data type
-        // $schema = parent::getDatabaseSchema($field);
+        // do not get the default schema. We define it fully here
+        $schema = parent::getDatabaseSchema($field);
 
         // return $schema;
         $engine = $this->wire('config')->dbEngine;
         $charset = $this->wire('config')->dbCharset;
         $schema = array(
             'pages_id' => 'int UNSIGNED NOT NULL',
-            'data' => 'JSON NOT NULL',
+            'data' => 'VARCHAR(255) NOT NULL',
             'pageid' => 'INT NOT NULL',
-            'filename' => 'VARCHAR(255) NOT NULL',
             'keys' => array(
                 'primary' => 'PRIMARY KEY (`pages_id`)',
-                'pageid' => 'KEY (`pageid`)',
-                'filename' => 'FULLTEXT(`filename`)'
+                'data' => 'FULLTEXT(`data`)', // used for the filname
+                'pageid' => 'KEY (`pageid`)'
             ),
             // additional data 
             'xtra' => array(
@@ -359,21 +356,19 @@ class FieldtypeImagePicker extends Fieldtype
     protected function updateDatabaseSchema(Field $field, array $schema)
     {
 
-        $requiredVersion = 1;
+        $requiredVersion = 2;
         $schemaVersion = (int) $field->get('schemaVersion');
         if ($schemaVersion >= $requiredVersion) {
             // already up-to-date
             return;
         }
-        if ($schemaVersion == 0) {
+        if ($schemaVersion == 1) {
             /**
              * update schema to v2: 
-             * add 'filename' column
-             * copy values from data to filename
-             * update column data with json string
+             * remove data column
              */
             // 	
-            $schemaVersion = 1;
+            $schemaVersion = 2;
             $database = $this->wire('database');
             $table = $database->escapeTable($field->getTable());
             $query = $database->prepare("SHOW TABLES LIKE '$table'");
@@ -381,46 +376,28 @@ class FieldtypeImagePicker extends Fieldtype
             $row = $query->fetch(\PDO::FETCH_NUM);
             $query->closeCursor();
             if (!empty($row)) {
-                $query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE field='pageid'");
-                $query->execute();
-                if (!$query->rowCount()) try {
-                    $database->exec("ALTER TABLE `$table` ADD COLUMN `pageid` INT NOT NULL AFTER data");
-                    $database->exec("ALTER TABLE `$table` ADD INDEX `pageid` (`pageid`)");
-                    $this->message("Added 'pageid' column to '$field->table'");
-                    // $database->exec("UPDATE `$table` SET pageid=0");
-                    // $this->message("filled 'pageid' values with 0");
-                } catch (\Exception $e) {
-                    $this->error($e->getMessage());
-                }
-
+                // get information about data column as 0 indexed array
                 $query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE field='filename'");
                 $query->execute();
-                if (!$query->rowCount()) try {
-                    $database->exec("ALTER TABLE `$table` ADD COLUMN `filename` VARCHAR(255) NOT NULL AFTER pageid");
-                    $database->exec("ALTER TABLE `$table` ADD FULLTEXT(`filename`)");
-                    $this->message("Added 'filename' column to '$field->table'");
-                    $database->exec("UPDATE `$table` SET filename=data");
-                    $this->message("copied 'data' values to 'filename' column");
-                    $database->exec("UPDATE `$table` SET `data`=''");
-                    $database->exec("ALTER TABLE `$table` DROP KEY data");
-                    $database->exec("UPDATE `$table` SET data=CONCAT(JSON_OBJECT(\"pageid\", `$table`.pageid, \"filename\", `$table`.filename))");
-                    $this->message("populated 'data'");
-                    $database->exec("ALTER TABLE `$table` MODIFY data JSON NOT NULL");
-                    $this->message("updated 'data' schema to JSON");
-                } catch (\Exception $e) {
-                    $this->error($e->getMessage());
+                if ($query->rowCount()) {
+                    try {
+                        $database->exec("ALTER TABLE `$table` MODIFY data VARCHAR(255) NOT NULL");
+                        $database->exec("ALTER TABLE `$table` ADD FULLTEXT(`data`)");
+                        $this->message("updated 'data' schema to text NOT NULL");
+                        $database->exec("UPDATE `$table` SET data=filename");
+                        $this->message("copied data from 'filename' to 'data' column");
+                        $database->exec("ALTER TABLE `$table` DROP COLUMN filename");
+                        $this->message("removed column 'filename'");
+                    } catch (\Exception $e) {
+                        $this->error($e->getMessage());
+                    }
                 }
             }
         }
 
         $field->set('schemaVersion', $schemaVersion);
-        // @todo: this should go into ___update() but it is ot being triggered there
-        if($field->get('folderPath')) {
-            $field->set('folderpath', $field->get('folderPath'));
-            $field->set('fromfolder', 1);
-        }
         $field->save();
-        $this->wire('log')->save('modules', 'updated DB table');
+        $this->wire('log')->save('modules', "updated DB table for field {$field->name}");
     }
 
     /**
@@ -436,23 +413,15 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function getMatchQuery($query, $table, $subfield, $operator, $value)
     {
-        $database = $this->wire("database");
-        if (empty($subfield) || $subfield == "data") {
-            $path = '$.*';
-        } else {
-            $path = '$.' . $subfield;
+        if (!$subfield || $subfield == 'filename') $subfield = 'data';
+        if ($subfield != 'data' || $this->wire('database')->isOperator($operator)) {
+            // if dealing with something other than address, or operator is native to SQL,
+            // then let Fieldtype::getMatchQuery handle it instead
+            return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
         }
-        $table = $database->escapeTable($table);
-        $value = $database->escapeStr($value);
-        if ($operator == "=") {
-            $query->where("JSON_SEARCH({$table}.data, 'one', '$value', NULL, '$path') IS NOT NULL");
-        } else if ($operator == "*=" || $operator == "%=") {
-            $query->where("JSON_SEARCH({$table}.data, 'one', '%$value%', NULL, '$path') IS NOT NULL");
-        } else if ($operator == "^=") {
-            $query->where("JSON_SEARCH({$table}.data, 'one', '$value%', NULL, '$path') IS NOT NULL");
-        } else if ($operator == "$=") {
-            $query->where("JSON_SEARCH({$table}.data, 'one', '%$value', NULL, '$path') IS NOT NULL");
-        }
+        // if we get here, then we're performing either %= (LIKE and variations) or *= (FULLTEXT and variations)
+        $ft = new DatabaseQuerySelectFulltext($query);
+        $ft->match($table, $subfield, $operator, $value);
         return $query;
     }
 
@@ -464,16 +433,18 @@ class FieldtypeImagePicker extends Fieldtype
             if (!$modules->isInstalled('ImagePickerHookHelper')) $modules->install('ImagePickerHookHelper');
             $this->wire('log')->save('modules', 'installed module ImagePickerHookHelper');
 
-            // update field settings 
-            foreach ($this->wire('fields') as $field) {
-                var_dump($field);
-                if (!$field->get('folderPath')) continue;
-                // @todo for some reason this code does not run
-                $field->set('folderpath', $field->get('folderPath'));
-                $field->set('folderPath', 'deprecated');
-                $field->set('fromfolder', 1);
-                $field->save();
-                $this->wire('log')->save('modules', "updated field {$field->name} settings");
+            if ($toVersion == '1.1.1') {
+                // update field settings
+                foreach ($this->wire('fields') as $field) {
+                    var_dump($field);
+                    if (!$field->get('folderPath')) continue;
+                    // @todo for some reason this code does not run
+                    $field->set('folderpath', $field->get('folderPath'));
+                    $field->set('folderPath', 'deprecated');
+                    $field->set('fromfolder', 1);
+                    $field->save();
+                    $this->wire('log')->save('modules', "updated field {$field->name} settings");
+                }
             }
         }
     }
