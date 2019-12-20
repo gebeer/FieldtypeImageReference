@@ -4,8 +4,6 @@
 
 **Inputfield Image Picker** is an Inputfield to select a single image from images on another page and optionally its children, and/or from a folder and/or from the page that the field lives on.
 
-**IMPORTANT**: at the moment this module requires that your site runs on MySQL >= 5.7.8 with InnoDB because it uses JSON data type for storage.
-
 ![Inputfield in page edior](images/inputfield-in-editor.png)
 You can upload/edit images to other pages from within the input field
 ![Upload images to other pages from within field](images/upload-edit-from-field.png)
@@ -22,6 +20,7 @@ Other than the native ProcessWire images field, the images here are not stored p
 * Images can be organized into categories. Child pages of the main 'image source page' serve as categories
 * From the API side, images can be manipulated like native ProcessWire images (resizing, cropping etc.), even the images from a folder
 * Image thumbnails are optionally loaded into inputfield by ajax on demand
+* Markup of SVG images can be rendered inline with `echo $image->svgcontent`
 * Image names are fully searchable through the API
 ```php
 $pages->find('fieldname.filename=xyz.png');
