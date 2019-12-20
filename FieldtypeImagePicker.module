@@ -425,6 +425,53 @@ class FieldtypeImagePicker extends Fieldtype
         return $query;
     }
 
+    /**
+	 * Get information used for InputfieldSelector interactive selector builder
+	 *
+	 * This is for Lister purposes.
+	 * We want nice labels for our lister selects (i.e. not raw db ones, i.e. 'some_column').
+	 *
+	 * @param Field $field The field we are working with.
+	 * @param array $data Array of extra data, when/if needed.
+	 * @return array
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$info = parent::___getSelectorInfo($field, $data);
+		
+		## filterable subfields for this field ##
+
+		// we get rid of the subfield 'data' instead, we'll use 'custom one' => IF APPLICABLE TO YOU!
+		if(isset($info['subfields']['data'])) unset($info['subfields']['data']);
+		$subfields = array(
+			// @note: @see  getMatchQuery! 
+			
+			// shipping class
+			'data' => array(
+				'name' => 'filename',
+				'input' => 'text',
+				'label' => $this->_('Filename'),// NICE LABEL FOR LISTER
+				// @note: comment out those that don't make sense!
+				'operators' => array('%=', '!%=', '*='/* , '!*=' */, '~='/* , '!~=' */, '^='/* , '!^=' */, '$='/* , '!$=' */, '=', '!=', '=""', '!=""'),
+				'options' => array(),
+			),
+			// has variants @todo: useful?
+			'pageid' => array(
+				'name' => 'pageid',
+				'input' => 'number',
+				'label' => $this->_('Page ID'),
+				// @note: commented out those that don't make sense 0=not variants; 1=has variants
+				'operators' => array('=', '!=', /*'<', '>', '<=', '>=',*/ '=""', '!=""'),
+				'options' => array(),
+			),
+		);
+
+		$info['subfields'] = array_merge($info['subfields'], $subfields);
+
+		return $info;
+
+    }
+    
     public function ___upgrade($fromVersion, $toVersion)
     {
         if (version_compare($fromVersion, $toVersion == -1)) {
