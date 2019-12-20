@@ -441,26 +441,19 @@ class FieldtypeImagePicker extends Fieldtype
 		
 		## filterable subfields for this field ##
 
-		// we get rid of the subfield 'data' instead, we'll use 'custom one' => IF APPLICABLE TO YOU!
 		if(isset($info['subfields']['data'])) unset($info['subfields']['data']);
 		$subfields = array(
-			// @note: @see  getMatchQuery! 
-			
-			// shipping class
 			'data' => array(
 				'name' => 'filename',
 				'input' => 'text',
-				'label' => $this->_('Filename'),// NICE LABEL FOR LISTER
-				// @note: comment out those that don't make sense!
+				'label' => $this->_('Filename'),
 				'operators' => array('%=', '!%=', '*='/* , '!*=' */, '~='/* , '!~=' */, '^='/* , '!^=' */, '$='/* , '!$=' */, '=', '!=', '=""', '!=""'),
 				'options' => array(),
 			),
-			// has variants @todo: useful?
 			'pageid' => array(
 				'name' => 'pageid',
 				'input' => 'number',
 				'label' => $this->_('Page ID'),
-				// @note: commented out those that don't make sense 0=not variants; 1=has variants
 				'operators' => array('=', '!=', /*'<', '>', '<=', '>=',*/ '=""', '!=""'),
 				'options' => array(),
 			),
