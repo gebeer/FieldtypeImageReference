@@ -348,7 +348,6 @@ class FieldtypeImagePicker extends Fieldtype
                 if (!$frompagefields = $field->get('imagesfieldspage')) continue;
                 // @todo for some reason this code does not run
                 $fields = array_unique(array_merge($frompagefields, $field->get('imagesfields')));
-                bd($fields);
                 $field->set('imagesfields', $fields);
                 $field->set('imagesfieldspage', array());
                 $field->save();
