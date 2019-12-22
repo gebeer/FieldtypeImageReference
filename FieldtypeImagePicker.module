@@ -30,7 +30,7 @@ class FieldtypeImagePicker extends Fieldtype
     {
         return array(
             'title' => __('Image Picker Fieldtype'),
-            'version' => 112,
+            'version' => 113,
             'summary' => __('Fieldtype that stores a reference to a single image from another page and/or from a folder'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
