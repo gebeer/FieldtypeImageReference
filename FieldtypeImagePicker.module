@@ -342,7 +342,19 @@ class FieldtypeImagePicker extends Fieldtype
         );
 
         if ($field->id) $this->updateDatabaseSchema($field, $schema);
-
+        // running this here instead of in ___upgrade() because it somehow doesn't run there
+        if($this->getModuleInfo()['version'] <= 114 && !empty($field->imagesfieldspage)) {
+            foreach ($this->wire('fields') as $field) {
+                if (!$frompagefields = $field->get('imagesfieldspage')) continue;
+                // @todo for some reason this code does not run
+                $fields = array_unique(array_merge($frompagefields, $field->get('imagesfields')));
+                bd($fields);
+                $field->set('imagesfields', $fields);
+                $field->set('imagesfieldspage', array());
+                $field->save();
+                $this->wire('log')->save('modules', "updated field {$field->name} settings");
+            }
+        }
         return $schema;
     }
 
@@ -393,11 +405,12 @@ class FieldtypeImagePicker extends Fieldtype
                     }
                 }
             }
+            
+            $this->wire('log')->save('modules', "updated DB table for field {$field->name}");
         }
 
         $field->set('schemaVersion', $schemaVersion);
         $field->save();
-        $this->wire('log')->save('modules', "updated DB table for field {$field->name}");
     }
 
     /**
@@ -468,20 +481,20 @@ class FieldtypeImagePicker extends Fieldtype
     public function ___upgrade($fromVersion, $toVersion)
     {
         if (version_compare($fromVersion, $toVersion == -1)) {
-            $modules = $this->wire('modules');
             // install helper module
+            $modules = $this->wire('modules');
             if (!$modules->isInstalled('ImagePickerHookHelper')) $modules->install('ImagePickerHookHelper');
             $this->wire('log')->save('modules', 'installed module ImagePickerHookHelper');
 
-            if ($toVersion == '1.1.1') {
+            if ($toVersion == '1.1.4') {
                 // update field settings
                 foreach ($this->wire('fields') as $field) {
-                    var_dump($field);
-                    if (!$field->get('folderPath')) continue;
+                    if (!$frompagefields = $field->get('imagesfieldspage')) continue;
+                    // var_dump($field);
                     // @todo for some reason this code does not run
-                    $field->set('folderpath', $field->get('folderPath'));
-                    $field->set('folderPath', 'deprecated');
-                    $field->set('fromfolder', 1);
+                    $fields = array_unique(array_merge($frompagefields, $field->get('imagesfields')));
+                    $field->set('imagesfields', $fields);
+                    $field->set('imagesfieldspage', array());
                     $field->save();
                     $this->wire('log')->save('modules', "updated field {$field->name} settings");
                 }
@@ -554,27 +567,6 @@ class FieldtypeImagePicker extends Fieldtype
         if ($errorimgpage) $f->error($errorimgpage);
         $wrapper->add($f);
 
-        if (!$errorimgpage) {
-            /** @var Field $f */
-            $f = $this->modules->get('InputfieldCheckboxes');
-            $f->attr('name', 'imagesfields');
-            $f->optionColumns = 1;
-            $f->showIf('frompages=1');
-            $f->requiredIf('imagespage!=""');
-            if ($field->imagespage) {
-                $f->label = $this->_("Choose image fields on the template of the page above");
-                $f->required(1);
-                $fields = $imagespage->fieldgroup->find('type=FieldtypeImage');
-                $options = array();
-                foreach ($fields as $fd) $options[$fd->name] = $fd->name;
-                $f->options = $options;
-                $f->attr('value', $field->imagesfields);
-            } else {
-                $f->label = $this->_("You must submit changes to the field above first");
-            }
-            $wrapper->add($f);
-        }
-
         /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'includechildren');
@@ -627,35 +619,42 @@ class FieldtypeImagePicker extends Fieldtype
         $f->attr('name', 'frompage');
         $f->label2 = $this->_("Pick from the page the field lives on?");
         $f->skipLabel(4);
-        $f->description = $this->_('Images from the page that this field is on, will be supplied. The page must have an images field for this option to work.');
+        $f->description = $this->_('Images from the page that is being edited, will be supplied. The page must have an images field for this option to work.');
         $f->attr('checked', $field->frompage ? 'checked' : '');
         $f->attr('value', $field->frompage);
-        $wrapper->add($f);
-
-        /** @var Field $f */
-        $f = $this->modules->get('InputfieldCheckboxes');
-        $f->attr('name', 'imagesfieldspage');
-        $f->optionColumns = 1;
-        $f->showIf('frompage=1');
-        $f->requiredIf('frompage=1');
-        if ($field->frompage) {
-            $f->label = $this->_("Choose image fields to use");
-            $f->description = $this->_('Images from this field will be supplied. For this option to work, the page must have the selected images fields.');
-            $f->required(1);
-            $fields = $this->wire('fields')->find('type=FieldtypeImage');
-            $options = array();
-            foreach ($fields as $fd) $options[$fd->name] = $fd->name;
-            $f->options = $options;
-            $f->attr('value', $field->imagesfieldspage);
-        } else {
-            $f->label = $this->_("You must submit changes to the field above first");
-        }
         $wrapper->add($f);
 
         $sourceswrapper->add($wrapper);
 
         $inputfields->add($sourceswrapper);
 
+       /* image fields settings */
+       if ($field->imagespage || $field->frompage) {
+        $imagefieldswrapper = new InputfieldFieldset;
+        $imagefieldswrapper->label = $this->_("Choose Image fields");
+
+            /** @var Field $f */
+            $f = $this->modules->get('InputfieldCheckboxes');
+            $f->attr('name', 'imagesfields');
+            $f->optionColumns = 1;
+            $f->showIf('imagespage|frompage!=""');
+            $f->requiredIf('imagespage|frompage!=""');
+            if ($field->imagespage || $field->frompage) {
+                $f->label = $this->_("Choose image fields that supply images");
+                $f->description = $this->_('Images from these fields will be supplied to the image picker.');
+                $f->required(1);
+                $fields = $this->wire('fields')->find('type=FieldtypeImage');
+                $options = array();
+                foreach ($fields as $fd) $options[$fd->name] = $fd->name;
+                $f->options = $options;
+                $f->attr('value', $field->imagesfields);
+            } else {
+                $f->label = $this->_("You must save changes to the fields above first");
+            }
+            $imagefieldswrapper->add($f);
+            $inputfields->add($imagefieldswrapper);            
+        }
+ 
         /* general settings */
         $wrapper = new InputfieldFieldset;
         $wrapper->label = $this->_("General settings");

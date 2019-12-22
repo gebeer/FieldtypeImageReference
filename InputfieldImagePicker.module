@@ -338,12 +338,11 @@ class InputfieldImagePicker extends Inputfield implements Module
 	 */
 	public function getImageFields(Page $page, $excludeFullFields = true) {
         
-        $fields = ($this->frompage && $this->hasPage && ($page->id == $this->hasPage->id)) ? $this->imagesfieldspage : $this->imagesfields;
 		$imageFields = array();
 
 		foreach($page->fields as $field) {
             if(!$field->type instanceof FieldtypeImage) continue;
-            if(!in_array($field->name, $fields)) continue;
+            if(!in_array($field->name, $this->imagesfields)) continue;
 			if(!$page->editable($field->name)) continue; 
 			if($excludeFullFields && $field->maxFiles > 0) {
 				if(count($page->get($field->name)) >= $field->maxFiles) continue; 
