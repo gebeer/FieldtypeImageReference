@@ -170,9 +170,7 @@ class InputfieldImagePicker extends Inputfield implements Module
     {
         $wrapper = new InputfieldWrapper;
         $wrapper->attr('id', 'imagepicker_thumbs');
-        foreach ($this->imagePages as $p) {
-            $wrapper->add($this->renderThumbnailsForPage($p));
-        }
+        foreach ($this->imagePages as $p) $wrapper->add($this->renderThumbnailsForPage($p));
         if($this->fromfolder && $this->folderpath) $wrapper->add($this->renderThumbnailsForFolder($this->folderpath));
 
         /**
@@ -181,7 +179,6 @@ class InputfieldImagePicker extends Inputfield implements Module
          * retrieve page picker an thumbs with URL like /adminUrl/page/image/?id=1119&edit_page_id=1001&modal=1&field=images 
          */
         
-
         return $wrapper->render();
     }
 
@@ -212,9 +209,7 @@ class InputfieldImagePicker extends Inputfield implements Module
 			// }
             // $button = $btn->render();
             $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagepicker' class='imagepicker_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
-		} else $btn = null;
-
-
+		}
 
         $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '">';
         if (!$this->useajax) $markup .= $this->getThumbnailsForPage($page->id);

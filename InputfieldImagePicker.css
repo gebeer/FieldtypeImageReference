@@ -2,6 +2,10 @@
     cursor: pointer;
 }
 
+.InputfieldImagePicker .imagepicker_thumbholder {
+    margin-bottom: 1px;
+}
+
 .InputfieldImagePicker .uk-thumbnav li {
     flex: 0 0 auto;
     margin-bottom: 20px;
