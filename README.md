@@ -32,10 +32,10 @@ $pages->find('fieldname.filename%=xy.png');
 ### Settings / Options
 * The page containing the images to choose from.
     - images from that page and optionally it's child pages will be used as site-wide images.
-* The field name of the images field on that page.
+* The image fields to use.
 * Option to include images from child pages of the page that contains images
 * A folder containing the images to choose from
-* Option to also include the images from the page that this field lives on
+* Option to also include the images from the page that this field lives on (the page being edited)
 * Option to load thumbnails on demand via ajax. Especially useful when field is used inside repeaters or has many images
 * Width of chosen image in Inputfield.
 * Width of image thumbnails in Inputfield.
@@ -86,5 +86,6 @@ $pages->find('fieldname.pageid=1234');
 This module was developed based on ideas from forum members in [this forum thread](https://processwire.com/talk/topic/22732-fieldtypeimagefrompage-pick-an-image-from-various-sources/)
 
 ### Roadmap
-* allow to chose multiple fields where source images are stored
 * upload widget for images in folder
+* option to choose an image from any page on the site
+* allow to choose multiple images

@@ -532,9 +532,7 @@ class FieldtypeImagePicker extends Fieldtype
         /* images from pages*/
         $wrapper = new InputfieldFieldset;
         $wrapper->label = $this->_("Pick images from a page?");
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'frompages');
         $f->label = $this->_("Pick images from a page?");
@@ -543,9 +541,7 @@ class FieldtypeImagePicker extends Fieldtype
         $f->attr('value', $field->frompages);
         $wrapper->add($f);
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldPageListSelect');
         $f->attr('name', 'imagespage');
         $f->parent_id = 0; // 0 to include homepage
@@ -559,31 +555,27 @@ class FieldtypeImagePicker extends Fieldtype
         $wrapper->add($f);
 
         if (!$errorimgpage) {
-            /**
-             * @var Field
-             */
-            $f = $this->modules->get('InputfieldRadios');
-            $f->attr('name', 'imagesfield');
+            /** @var Field $f */
+            $f = $this->modules->get('InputfieldCheckboxes');
+            $f->attr('name', 'imagesfields');
             $f->optionColumns = 1;
             $f->showIf('frompages=1');
             $f->requiredIf('imagespage!=""');
             if ($field->imagespage) {
-                $f->label = $this->_("Choose an images field on the template of the page above");
+                $f->label = $this->_("Choose image fields on the template of the page above");
                 $f->required(1);
                 $fields = $imagespage->fieldgroup->find('type=FieldtypeImage');
                 $options = array();
                 foreach ($fields as $fd) $options[$fd->name] = $fd->name;
                 $f->options = $options;
-                $f->attr('value', $field->imagesfield);
+                $f->attr('value', $field->imagesfields);
             } else {
                 $f->label = $this->_("You must submit changes to the field above first");
             }
             $wrapper->add($f);
         }
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'includechildren');
         $f->label = $this->_("Include child pages of above page as source for images?");
@@ -599,9 +591,7 @@ class FieldtypeImagePicker extends Fieldtype
         $wrapper = new InputfieldFieldset;
         $wrapper->label = $this->_("Pick images from a defined folder?");
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'fromfolder');
         $f->label = $this->_("Pick images from a defined folder?");
@@ -610,9 +600,7 @@ class FieldtypeImagePicker extends Fieldtype
         $f->attr('value', $field->fromfolder);
         $wrapper->add($f);
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'folderpath');
         $f->label = $this->_("The folder containing the images.");
@@ -634,9 +622,7 @@ class FieldtypeImagePicker extends Fieldtype
         $wrapper = new InputfieldFieldset;
         $wrapper->label = $this->_("Pick images from the page the field lives on?");
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'frompage');
         $f->label2 = $this->_("Pick from the page the field lives on?");
@@ -646,23 +632,21 @@ class FieldtypeImagePicker extends Fieldtype
         $f->attr('value', $field->frompage);
         $wrapper->add($f);
 
-        /**
-         * @var Field
-         */
-        $f = $this->modules->get('InputfieldRadios');
-        $f->attr('name', 'imagesfieldpage');
+        /** @var Field $f */
+        $f = $this->modules->get('InputfieldCheckboxes');
+        $f->attr('name', 'imagesfieldspage');
         $f->optionColumns = 1;
         $f->showIf('frompage=1');
         $f->requiredIf('frompage=1');
         if ($field->frompage) {
-            $f->label = $this->_("Choose an images field to use");
-            $f->description = $this->_('Images from this field will be supplied. For this option to work, the page must have this images field.');
+            $f->label = $this->_("Choose image fields to use");
+            $f->description = $this->_('Images from this field will be supplied. For this option to work, the page must have the selected images fields.');
             $f->required(1);
             $fields = $this->wire('fields')->find('type=FieldtypeImage');
             $options = array();
             foreach ($fields as $fd) $options[$fd->name] = $fd->name;
             $f->options = $options;
-            $f->attr('value', $field->imagesfieldpage);
+            $f->attr('value', $field->imagesfieldspage);
         } else {
             $f->label = $this->_("You must submit changes to the field above first");
         }
@@ -676,9 +660,7 @@ class FieldtypeImagePicker extends Fieldtype
         $wrapper = new InputfieldFieldset;
         $wrapper->label = $this->_("General settings");
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'useajax');
         $f->label = $this->_("Load thumbnails dynamically only when requested");
@@ -688,9 +670,7 @@ class FieldtypeImagePicker extends Fieldtype
         // $inputfields->add($f);
         $wrapper->add($f);
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'previewWidth');
         $f->label = $this->_("Width of the selected image in px");
@@ -699,9 +679,7 @@ class FieldtypeImagePicker extends Fieldtype
         // $inputfields->add($f);
         $wrapper->add($f);
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'thumbWidth');
         $f->label = $this->_("Width of thumbnail images in px");
@@ -712,9 +690,7 @@ class FieldtypeImagePicker extends Fieldtype
 
         $inputfields->add($wrapper);
 
-        /**
-         * @var Field
-         */
+        /** @var Field $f */
         $f = $this->modules->get('InputfieldMarkup');
         $f->attr('name', 'FieldtypeImagePicker_instructions');
         $f->label = $this->_("How to use this field in a template");

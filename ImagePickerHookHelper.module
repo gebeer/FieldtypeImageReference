@@ -65,7 +65,7 @@ class ImagePickerHookHelper extends WireData implements Module
             $pages = $this->wire('pages')->find("{$name}.filename={$filename}, {$name}.pageid={$pageid}, include=all");
             if ($pages->count) {
                 $label = $pages->first()->getField($name)->label;
-                $pagelist .= sprintf($this->_("Remove image from field: %s on following pages:<br>"), "<em>{$label}</em>");
+                $pagelist .= sprintf($this->_("Remove image from field: %s on following pages:"), "<em>{$label}</em>");
                 $pagelist .= '<ul>';
                 foreach ($pages as $p) {
                     $urlParam = "&field={$name}";
@@ -76,8 +76,10 @@ class ImagePickerHookHelper extends WireData implements Module
                         $urlParam = "&field={$repeaterfieldName}";
                     }
                     $p = $this->getPageToEdit($p);
-                    $pagelist .= "<li>" . $this->_('Page title') . ": <em>{$p->title}</em>, " . $this->_('Page path') . 
-                    ": <em>{$p->path}</em> &nbsp;<a href='{$p->editUrl}{$urlParam}' title='" . $this->_('Edit page in new tab') . 
+                    $pagelist .= "<li>" 
+                    . $this->_('Page title') . ": <em>{$p->title}</em>, " 
+                    . $this->_('Page path') . ": <em>{$p->path}</em>
+                     &nbsp;<a href='{$p->editUrl}{$urlParam}' title='" . $this->_('Edit page in new tab') . 
                     "' target='_blank'><strong>" . $this->_('Edit page') . "</strong></a></li>";
                 }
                 $pagelist .= '</ul>';
@@ -92,7 +94,7 @@ class ImagePickerHookHelper extends WireData implements Module
             $message .= $this->_('After all references are removed, you may delete the image');
             $imgInput = $event->object->field->getInputfield($event->object->page);
             $this->error($message, Notice::allowMarkup);
-            $imgInput->error($this->_('Image cannot be deleted (follow instructions at the top)'), Notice::allowMarkup);
+            $imgInput->error(sprintf($this->_("Image %s cannot be deleted (follow instructions at the top)"), $filename));
             $event->replace = true; // prevents deletion
         }
     }
@@ -152,16 +154,17 @@ class ImagePickerHookHelper extends WireData implements Module
     }
 
     /**
-     * get names of imagepicker fields that have an imagesfield with name $imagesfield assigned
+     * get names of imagepicker fields that have an imagesfield with name $fieldName assigned
      *
-     * @param string $imagesfield name of the imagesfield
+     * @param string $fieldName name of the imagesfield
      * @return array array of fields of type FieldtypeImagePicker
      */
-    public function getRelevantFields($imagesfield)
+    public function getRelevantFields($fieldName)
     {
         $fields = array();
         foreach ($this->wire('fields') as $f) {
-            if ($f->type instanceof FieldtypeImagePicker && ($f->imagesfield == $imagesfield || $f->imagesfieldpage == $imagesfield)) $fields[] = $f;
+            if (!$f->type instanceof FieldtypeImagePicker) continue;
+            if (in_array($fieldName, $f->imagesfields) || in_array($fieldName, $f->imagesfieldspage)) $fields[] = $f;
         }
         return $fields;
     }
