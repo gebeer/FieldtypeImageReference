@@ -3,7 +3,7 @@
 namespace ProcessWire;
 
 /**
- * Fieldtype 'Image Picker' stores a reference to an image from another page and/or folder to a selected image in the associated InputfieldImagePicker.
+ * Fieldtype 'Image Reference' stores a reference to an image from another page and/or folder to a selected image in the associated InputfieldImageReference.
  * The image can be rendered in template files like any Pageimage (resizing/cropping)
  * In case of SVG the file contents can be rendered inline
  *
@@ -18,7 +18,7 @@ namespace ProcessWire;
  *
  */
 
-class FieldtypeImagePicker extends Fieldtype
+class FieldtypeImageReference extends Fieldtype
 {
 
     /**
@@ -29,14 +29,14 @@ class FieldtypeImagePicker extends Fieldtype
     public static function getModuleInfo()
     {
         return array(
-            'title' => __('Image Picker Fieldtype'),
-            'version' => 113,
+            'title' => __('Image Reference Fieldtype'),
+            'version' => 120,
             'summary' => __('Fieldtype that stores a reference to a single image from another page and/or from a folder'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
             'installs' => [
-                'InputfieldImagePicker',
-                'ImagePickerHookHelper'
+                'InputfieldImageReference',
+                'ImageReferenceHookHelper'
             ],
             'requires' => [
                 'PHP>=7.1.0',
@@ -53,8 +53,8 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function __construct()
     {
-        // require_once(dirname(__FILE__) . '/ImagePickerFile.php');
-        require_once(dirname(__FILE__) . '/ImagePickerVirtualpage.php');
+        // require_once(dirname(__FILE__) . '/ImageReferenceFile.php');
+        require_once(dirname(__FILE__) . '/ImageReferenceVirtualpage.php');
     }
 
     /**
@@ -117,7 +117,13 @@ class FieldtypeImagePicker extends Fieldtype
             $pageimages = self::getPageimages($field->folderpath);
             return $pageimages->getFile($value->filename);
         } elseif ($value->filename && $value->pageid !== 0) { // Pageimage
-            $pageimage = $this->wire('pages')->get($value->pageid)->get($field->imagesfield)->getFile($value->filename);
+            $pageimage = null;
+            $page = $this->wire('pages')->get($value->pageid);
+            if ($page->id) {
+                foreach ($field->imagesfields as $fieldName) {
+                    if ($pageimage = $page->get($fieldName)->getFile($value->filename)) break;
+                }
+            }
             if ($pageimage && $pageimage instanceof Pageimage) {
                 if (strtolower($pageimage->ext) == 'svg') $this->addHookProperty("Pageimage::svgcontent", $this, 'addPropertySvgcontent');
                 return $pageimage;
@@ -137,10 +143,10 @@ class FieldtypeImagePicker extends Fieldtype
         // make sure $folderpath is full disk path 
         if (!is_dir(DIRECTORY_SEPARATOR . trim($folderpath, '/'))) $folderpath = self::getBasePath($folderpath);
 
-        $p = new ImagePickerVirtualpage($folderpath);
+        $p = new ImageReferenceVirtualpage($folderpath);
         $field = new Field;
         $field->type = new FieldtypeImage;
-        $field->name = 'imagepickervirtualfield';
+        $field->name = 'imagereferencevirtualfield';
         // $field->id = 0;
         $pageimages = new Pageimages($p);
         $pageimages->setField($field);
@@ -149,7 +155,7 @@ class FieldtypeImagePicker extends Fieldtype
             $pageimage = new Pageimage($pageimages, $file);
             $variation = $pageimage->isVariation(pathinfo($file, PATHINFO_BASENAME), array('allowSelf' => true, 'verbose' => false));
             if ($variation) continue; // add only originals
-            if (strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImagePicker::getFileContent($pageimage)); // if svg, add custom property
+            if (strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImageReference::getFileContent($pageimage)); // if svg, add custom property
             $pageimages->add($pageimage);
         }
         return $pageimages;
@@ -301,7 +307,7 @@ class FieldtypeImagePicker extends Fieldtype
      */
     public function getInputfield(Page $page, Field $field)
     {
-        $inputfield = $this->modules->get('InputfieldImagePicker');
+        $inputfield = $this->modules->get('InputfieldImageReference');
         return $inputfield;
     }
 
@@ -343,7 +349,7 @@ class FieldtypeImagePicker extends Fieldtype
 
         if ($field->id) $this->updateDatabaseSchema($field, $schema);
         // running this here instead of in ___upgrade() because it somehow doesn't run there
-        if($this->getModuleInfo()['version'] <= 114 && !empty($field->imagesfieldspage)) {
+        if ($this->getModuleInfo()['version'] <= 114 && !empty($field->imagesfieldspage)) {
             foreach ($this->wire('fields') as $field) {
                 if (!$frompagefields = $field->get('imagesfieldspage')) continue;
                 // @todo for some reason this code does not run
@@ -404,7 +410,7 @@ class FieldtypeImagePicker extends Fieldtype
                     }
                 }
             }
-            
+
             $this->wire('log')->save('modules', "updated DB table for field {$field->name}");
         }
 
@@ -438,52 +444,52 @@ class FieldtypeImagePicker extends Fieldtype
     }
 
     /**
-	 * Get information used for InputfieldSelector interactive selector builder
-	 *
-	 * This is for Lister purposes.
-	 * We want nice labels for our lister selects (i.e. not raw db ones, i.e. 'some_column').
-	 *
-	 * @param Field $field The field we are working with.
-	 * @param array $data Array of extra data, when/if needed.
-	 * @return array
-	 *
-	 */
-	public function ___getSelectorInfo(Field $field, array $data = array()) {
-		$info = parent::___getSelectorInfo($field, $data);
-		
-		## filterable subfields for this field ##
+     * Get information used for InputfieldSelector interactive selector builder
+     *
+     * This is for Lister purposes.
+     * We want nice labels for our lister selects (i.e. not raw db ones, i.e. 'some_column').
+     *
+     * @param Field $field The field we are working with.
+     * @param array $data Array of extra data, when/if needed.
+     * @return array
+     *
+     */
+    public function ___getSelectorInfo(Field $field, array $data = array())
+    {
+        $info = parent::___getSelectorInfo($field, $data);
 
-		if(isset($info['subfields']['data'])) unset($info['subfields']['data']);
-		$subfields = array(
-			'data' => array(
-				'name' => 'filename',
-				'input' => 'text',
-				'label' => $this->_('Filename'),
-				'operators' => array('%=', '!%=', '*='/* , '!*=' */, '~='/* , '!~=' */, '^='/* , '!^=' */, '$='/* , '!$=' */, '=', '!=', '=""', '!=""'),
-				'options' => array(),
-			),
-			'pageid' => array(
-				'name' => 'pageid',
-				'input' => 'number',
-				'label' => $this->_('Page ID'),
-				'operators' => array('=', '!=', /*'<', '>', '<=', '>=',*/ '=""', '!=""'),
-				'options' => array(),
-			),
-		);
+        ## filterable subfields for this field ##
 
-		$info['subfields'] = array_merge($info['subfields'], $subfields);
+        if (isset($info['subfields']['data'])) unset($info['subfields']['data']);
+        $subfields = array(
+            'data' => array(
+                'name' => 'filename',
+                'input' => 'text',
+                'label' => $this->_('Filename'),
+                'operators' => array('%=', '!%=', '*='/* , '!*=' */, '~='/* , '!~=' */, '^='/* , '!^=' */, '$='/* , '!$=' */, '=', '!=', '=""', '!=""'),
+                'options' => array(),
+            ),
+            'pageid' => array(
+                'name' => 'pageid',
+                'input' => 'number',
+                'label' => $this->_('Page ID'),
+                'operators' => array('=', '!=', /*'<', '>', '<=', '>=',*/ '=""', '!=""'),
+                'options' => array(),
+            ),
+        );
 
-		return $info;
+        $info['subfields'] = array_merge($info['subfields'], $subfields);
 
+        return $info;
     }
-    
+
     public function ___upgrade($fromVersion, $toVersion)
     {
         if (version_compare($fromVersion, $toVersion == -1)) {
             // install helper module
             $modules = $this->wire('modules');
-            if (!$modules->isInstalled('ImagePickerHookHelper')) $modules->install('ImagePickerHookHelper');
-            $this->wire('log')->save('modules', 'installed module ImagePickerHookHelper');
+            if (!$modules->isInstalled('ImageReferenceHookHelper')) $modules->install('ImageReferenceHookHelper');
+            $this->wire('log')->save('modules', 'installed module ImageReferenceHookHelper');
 
             if ($toVersion == '1.1.4') {
                 // update field settings
@@ -548,7 +554,6 @@ class FieldtypeImagePicker extends Fieldtype
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'frompages');
         $f->label = $this->_("Pick images from a page?");
-        // $f->description = $this->_('If checked, all child pages of above page will serve images to the inputfield');
         $f->attr('checked', $field->frompages ? 'checked' : '');
         $f->attr('value', $field->frompages);
         $wrapper->add($f);
@@ -625,35 +630,47 @@ class FieldtypeImagePicker extends Fieldtype
 
         $sourceswrapper->add($wrapper);
 
+        /* images from any page*/
+        $wrapper = new InputfieldFieldset;
+        $wrapper->label = $this->_("Pick images from any page of the site?");
+
+        /** @var Field $f */
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->attr('name', 'anypage');
+        $f->label2 = $this->_("Pick from any page?");
+        $f->skipLabel(4);
+        $f->description = $this->_('You can choose any page to pick images from.');
+        $f->attr('checked', $field->anypage ? 'checked' : '');
+        $f->attr('value', $field->anypage);
+        $wrapper->add($f);
+
+        $sourceswrapper->add($wrapper);
+
         $inputfields->add($sourceswrapper);
 
-       /* image fields settings */
-       if ($field->imagespage || $field->frompage) {
-        $imagefieldswrapper = new InputfieldFieldset;
-        $imagefieldswrapper->label = $this->_("Choose Image fields");
+        /* image fields settings */
+        if ($field->imagespage || $field->frompage || $field->anypage) {
+            $imagefieldswrapper = new InputfieldFieldset;
+            $imagefieldswrapper->label = $this->_("Choose Image fields");
 
             /** @var Field $f */
             $f = $this->modules->get('InputfieldCheckboxes');
             $f->attr('name', 'imagesfields');
             $f->optionColumns = 1;
-            $f->showIf('imagespage|frompage!=""');
-            $f->requiredIf('imagespage|frompage!=""');
-            if ($field->imagespage || $field->frompage) {
-                $f->label = $this->_("Choose image fields that supply images");
-                $f->description = $this->_('Images from these fields will be supplied to the image picker.');
-                $f->required(1);
-                $fields = $this->wire('fields')->find('type=FieldtypeImage');
-                $options = array();
-                foreach ($fields as $fd) $options[$fd->name] = $fd->name;
-                $f->options = $options;
-                $f->attr('value', $field->imagesfields);
-            } else {
-                $f->label = $this->_("You must save changes to the fields above first");
-            }
+            // $f->showIf('imagespage|frompage!=""');
+            // $f->requiredIf('imagespage|frompage!=""');
+            $f->label = $this->_("Choose image fields that supply images");
+            $f->description = $this->_('Images from these fields will be supplied to the image picker.');
+            $f->required(1);
+            $fields = $this->wire('fields')->find('type=FieldtypeImage');
+            $options = array();
+            foreach ($fields as $fd) $options[$fd->name] = $fd->name;
+            $f->options = $options;
+            $f->attr('value', $field->imagesfields);
             $imagefieldswrapper->add($f);
-            $inputfields->add($imagefieldswrapper);            
+            $inputfields->add($imagefieldswrapper);
         }
- 
+
         /* general settings */
         $wrapper = new InputfieldFieldset;
         $wrapper->label = $this->_("General settings");
@@ -690,7 +707,7 @@ class FieldtypeImagePicker extends Fieldtype
 
         /** @var Field $f */
         $f = $this->modules->get('InputfieldMarkup');
-        $f->attr('name', 'FieldtypeImagePicker_instructions');
+        $f->attr('name', 'FieldtypeImageReference_instructions');
         $f->label = $this->_("How to use this field in a template");
         $f->attr('value', '<code>&lt;img src="&lt;?= $page->' . $field->name . '->url ?&gt;"&gt; // renders the image<br>
         $page->' . $field->name . '->svgcontent // returns the text content for inlining SVG (works only with SVG images)<br><br>

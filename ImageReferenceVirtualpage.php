@@ -5,7 +5,7 @@ namespace ProcessWire;
 /**
  * sets up a virtual page that holds images inside a definded folder path
  */
-class ImagePickerVirtualpage extends Page
+class ImageReferenceVirtualpage extends Page
 {
     protected $path;
     protected $template;
@@ -35,11 +35,11 @@ class ImagePickerVirtualpage extends Page
         // if ($imgField) $fieldgroup->add($imgField);
         // $fieldgroup->add($this->wire('fields')->get('title'));
         $template = new Template;
-        $template->name = 'imagepickervirtualtemplate';
+        $template->name = 'imagereferencevirtualtemplate';
         // $template->setFieldgroup($fieldgroup);
         $this->set('template', $template);
         // $this->set('title', "Images in folder {$this->url()}");
-        $this->set('name', 'imagepickervirtualpage');
+        $this->set('name', 'imagereferencevirtualpage');
         $this->set('id', 0);
         // $this->populateImages($imgField->name);
         // $this->virtualImages = $this->get($imgField->name);
@@ -54,7 +54,7 @@ class ImagePickerVirtualpage extends Page
             $variation = $pageimage->isVariation($file, array('allowSelf' => true));
             if($variation) continue;
             // add custom propery svgcontent
-            if(strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImagePicker::getFileContent($pageimage));
+            if(strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImageReference::getFileContent($pageimage));
             $this->$imagefield->add($pageimage/* $this->path . $file */);
         }
     }
@@ -100,7 +100,7 @@ class ImagePickerVirtualpage extends Page
  * extends PagefilesManager
  * provides path and url to a specified folder to PagefilesManager
  * this path is used instead of the default path in /site/assets/files/
- * the path is stored as property in the ImagePickerVirtualpage object
+ * the path is stored as property in the ImageReferenceVirtualpage object
  */
 class VirtualpageFilesManager extends PagefilesManager
 {

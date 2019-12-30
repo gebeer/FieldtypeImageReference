@@ -1,8 +1,16 @@
-# FieldtypeImagePicker & InputfieldImagePicker
+# FieldtypeImageReference & InputfieldImageReference
 
-**Fieldtype Image Picker** is a Fieldtype that stores a reference to a single image from another page and optionally its children, and/or from a folder and/or from the page that the field lives on. The image can be selected with the associated Inputfield.
+**Fieldtype Image Reference** is a Fieldtype that stores a reference to a single image from 
+* from a folder inside site/templates/
+* from any page on the site. 
 
-**Inputfield Image Picker** is an Inputfield to select a single image from images on another page and optionally its children, and/or from a folder and/or from the page that the field lives on.
+The image can be selected with the associated Inputfield.
+
+**Inputfield Image Reference** is an Inputfield to select a single image from 
+* images on another page and optionally its children
+* and/or from a folder inside site/templates/
+* and/or from the page that is being edited 
+* and/or from any page on the site.
 
 ![Inputfield in page edior](images/inputfield-in-editor.png)
 You can upload/edit images to other pages from within the input field
@@ -16,8 +24,9 @@ Other than the native ProcessWire images field, the images here are not stored p
 
 ### Features
 * Images can be loaded from a folder inside site/templates/
-* Images can be loaded from other pages
+* Images can be loaded from other pages defined as image source
 * Images can be organized into categories. Child pages of the main 'image source page' serve as categories
+* Images can be loaded from any page on the site
 * From the API side, images can be manipulated like native ProcessWire images (resizing, cropping etc.), even the images from a folder
 * Image thumbnails are optionally loaded into inputfield by ajax on demand
 * Markup of SVG images can be rendered inline with `echo $image->svgcontent`
@@ -34,8 +43,9 @@ $pages->find('fieldname.filename%=xy.png');
     - images from that page and optionally it's child pages will be used as site-wide images.
 * Option to include images from child pages of the page that contains images
 * A folder containing the images to choose from
-* Option to also include the images from the page that this field lives on (the page being edited)
-* The image fields to use. These fields will supply images to the image picker
+* Option to also include the images from the page being edited
+* Option to choose images from any page on the site
+* The image fields to use. These fields will supply images to the image reference field
 * Option to load thumbnails on demand via ajax. Especially useful when field is used inside repeaters or has many images
 * Width of chosen image in Inputfield.
 * Width of image thumbnails in Inputfield.
@@ -45,11 +55,11 @@ $pages->find('fieldname.filename%=xy.png');
 All settings are per field that you create from this fieldtype. This means you can have different images to choose from for different fields that you create.
 
 ### How to install and setup
-1. [Download](https://github.com/gebeer/FieldtypeImagePicker/archive/master.zip) and install or [install from URL](https://github.com/gebeer/FieldtypeImagePicker/archive/master.zip) the module like any other modules in ProcessWire
+1. [Download](https://github.com/gebeer/FieldtypeImageReference/archive/master.zip) and install or [install from URL](https://github.com/gebeer/FieldtypeImageReference/archive/master.zip) the module like any other modules in ProcessWire
 2. Optional: create a page in the page tree that will hold your images and supply them to the inputfield. This page's template must have an images field
 3. Optional: upload some images to the page you created in step 2
 4. Optional: upload images to a folder inside site/templates
-5. Create a new field. As type choose 'Image Picker'. Save the field.
+5. Create a new field. As type choose 'Image Reference'. Save the field.
 6. Optional: in 'Details' Tab of the field choose the page you created in step 2
 7. Optional: click Save button
 8. Optional: choose the images field name for the field that holds your images (on page template from step 2)
@@ -58,9 +68,10 @@ All settings are per field that you create from this fieldtype. This means you c
 11. Optional: choose to use that folder as image source
 12. Optional: choose whether you want to include child pages of page from step 2 to supply images
 13. Optional: choose whether you want to include images from the page the field lives on.
-14. Optional: choose the images field name on the page that holds the images
-15. Add the field to any template
-16. You are now ready to use the field
+14. Optional: choose images from any page of the site
+15. Optional: choose the images field name on the page that holds the images
+16. Add the field to any template
+17. You are now ready to use the field
 
 ### How to use in template files
 ```php
@@ -78,14 +89,12 @@ $pages->find('fieldname.pageid=1234');
 ### Requirements
 * Processwire >= 3.0.120
 * PHP >= 7.1
-* **MySQL >= 5.7.8 with storage engine set to InnoDB**
 
-### [ProcessWire forum thread](https://processwire.com/talk/topic/22665-module-imagepicker-pick-images-from-various-sources/)
+### [ProcessWire forum thread](https://processwire.com/talk/topic/22665-module-imagereference-pick-images-from-various-sources/)
 
 ### Credits
 This module was developed based on ideas from forum members in [this forum thread](https://processwire.com/talk/topic/22732-fieldtypeimagefrompage-pick-an-image-from-various-sources/)
 
 ### Roadmap
 * upload widget for images in folder
-* option to choose an image from any page on the site
 * allow to choose multiple images

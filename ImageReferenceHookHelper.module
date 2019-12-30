@@ -4,7 +4,7 @@ namespace ProcessWire;
 
 // todos: open inputfield in repeaters on page edit load
 
-class ImagePickerHookHelper extends WireData implements Module
+class ImageReferenceHookHelper extends WireData implements Module
 {
     /**
      * Return an array of module information
@@ -14,14 +14,14 @@ class ImagePickerHookHelper extends WireData implements Module
     public static function getModuleInfo()
     {
         return array(
-            'title' => 'Hook Helper Module for FieldtypeImagePicker',
-            'version' => 113,
-            'summary' => __('Adds hooks to Pagefiles to restrict deletion of images that are used by FieldtypeImagePicker.'),
+            'title' => 'Hook Helper Module for FieldtypeImageReference',
+            'version' => 120,
+            'summary' => __('Adds hooks to Pagefiles to restrict deletion of images that are used by FieldtypeImageReference.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
             'autoload' => true,
             'requires' => array(
-                'FieldtypeImagePicker',
+                'FieldtypeImageReference',
                 'PHP>=7.1.0',
                 'ProcessWire>=3.0.120'
             )
@@ -36,11 +36,11 @@ class ImagePickerHookHelper extends WireData implements Module
         // todo: prevent falsy message that file has been deleted. how to remove message from session from within hook function?
 
         // load page in page edit process
-        // $this->addHookBefore('ProcessPageEdit::loadPage', $this, 'loadImagePickerVirtualpage');
+        // $this->addHookBefore('ProcessPageEdit::loadPage', $this, 'loadImageReferenceVirtualpage');
     }
 
     /**
-     * Executes before an image gets deleted that lives on a page which holds images for FieldtypeImagePicker
+     * Executes before an image gets deleted that lives on a page which holds images for FieldtypeImageReference
      * If references to that image are found on other pages, deletion is prevented and error messages are shown.
      *
      * @param Hookevent $event
@@ -49,7 +49,7 @@ class ImagePickerHookHelper extends WireData implements Module
     public function preventDeletion(Hookevent $event)
     {
         $thisFieldname = $event->object->field;
-        // get fields of type imagepicker that have this imagesfield assigned
+        // get fields of type imagereference that have this imagesfield assigned
         $fields = $this->getRelevantFields($thisFieldname);
         $deleted = $event->arguments(0);
         $editPage = $deleted->page;
@@ -100,19 +100,19 @@ class ImagePickerHookHelper extends WireData implements Module
     }
 
     /**
-     * loads an instance of ImagePickerVirtualpage into page edit screen
+     * loads an instance of ImageReferenceVirtualpage into page edit screen
      *
      * @param Hookevent $event
-     * @return Page ImagePickerVirtualpage object
+     * @return Page ImageReferenceVirtualpage object
      */
-    // public function loadImagePickerVirtualpage(Hookevent $event) {
+    // public function loadImageReferenceVirtualpage(Hookevent $event) {
     //     $id = $event->arguments(0);
-    //     $imagepickerfield = $this->wire('input')->imagepickerfield;
-    //     if(!$imagepickerfield) return;
+    //     $imagereferencefield = $this->wire('input')->imagereferencefield;
+    //     if(!$imagereferencefield) return;
     //     if($id != 999999999) return;
     //     $event->replace = true;
-    //     $path = $this->wire('config')->paths->templates . $this->wire('fields')->get($imagepickerfield)->folderpath;
-    //     $vPage = new ImagePickerVirtualpage($path);
+    //     $path = $this->wire('config')->paths->templates . $this->wire('fields')->get($imagereferencefield)->folderpath;
+    //     $vPage = new ImageReferenceVirtualpage($path);
     //     $event->return = $vPage;
 
     // }
@@ -129,9 +129,9 @@ class ImagePickerHookHelper extends WireData implements Module
     }
 
     /**
-     * Collects IDs of all pages and their children that  hold images for fields of type FieldtypeImagePicker
+     * Collects IDs of all pages and their children that  hold images for fields of type FieldtypeImageReference
      *
-     * @param array $fields all relevant fields of type FieldtypeImagePicker
+     * @param array $fields all relevant fields of type FieldtypeImageReference
      * @param Page $editPage page that is being edited
      * @return array array of page ids
      */
@@ -154,16 +154,16 @@ class ImagePickerHookHelper extends WireData implements Module
     }
 
     /**
-     * get names of imagepicker fields that have an imagesfield with name $fieldName assigned
+     * get names of imagereference fields that have an imagesfield with name $fieldName assigned
      *
      * @param string $fieldName name of the imagesfield
-     * @return array array of fields of type FieldtypeImagePicker
+     * @return array array of fields of type FieldtypeImageReference
      */
     public function getRelevantFields($fieldName)
     {
         $fields = array();
         foreach ($this->wire('fields') as $f) {
-            if (!$f->type instanceof FieldtypeImagePicker) continue;
+            if (!$f->type instanceof FieldtypeImageReference) continue;
             if (in_array($fieldName, $f->imagesfields) || in_array($fieldName, $f->imagesfieldspage)) $fields[] = $f;
         }
         return $fields;

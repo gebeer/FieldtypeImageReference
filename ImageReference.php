@@ -1,7 +1,7 @@
 <?php
 
 namespace ProcessWire;
-class ImagePicker extends WireData
+class ImageReference extends WireData
 {
 	public function __construct() {
 		$this->set('filename', ''); 

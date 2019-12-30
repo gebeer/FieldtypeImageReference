@@ -2,7 +2,7 @@
 
 namespace ProcessWire;
 /**
- * Inputfield 'Image Picker' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
+ * Inputfield 'Image Reference' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
  * Per field you can set a page to list from.
  *
  * ©2019 Gerhard Sitzmann
@@ -16,7 +16,7 @@ namespace ProcessWire;
  *
  */
 
-class InputfieldImagePicker extends Inputfield implements Module
+class InputfieldImageReference extends Inputfield implements Module
 {
 
     /**
@@ -34,13 +34,13 @@ class InputfieldImagePicker extends Inputfield implements Module
     public static function getModuleInfo()
     {
         return array(
-            'title' => 'Image Picker',
-            'version' => 113,
+            'title' => 'Image Reference',
+            'version' => 120,
             'summary' => __('Inputfield to select a single image from images on a predefined page and it\'s children.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
             'requires' => array(
-                'FieldtypeImagePicker',
+                'FieldtypeImageReference',
                 'PHP>=7.1.0',
                 'ProcessWire>=3.0.120'
             )
@@ -73,9 +73,9 @@ class InputfieldImagePicker extends Inputfield implements Module
     {
         $input = $this->wire('input');
         if ($this->process == 'ProcessPageEdit') { // we are on a page edit screen
-            $editPageUrl = $this->wire('pages')->get($input->id)->editUrl . "&InputfieldImagePicker=1";
+            $editPageUrl = $this->wire('pages')->get($input->id)->editUrl . "&InputfieldImageReference=1";
         } else { // other page 
-            $editPageUrl = $this->page->url . "?InputfieldImagePicker=1";
+            $editPageUrl = $this->page->url . "?InputfieldImageReference=1";
         }
         $this->wire('config')->js($this->className, array(
             'url' => $editPageUrl
@@ -95,7 +95,7 @@ class InputfieldImagePicker extends Inputfield implements Module
     public function setAttribute($key, $value)
     {
         if ($key == 'value' && empty($value)) {
-            $value = FieldtypeImagePicker::toJson();
+            $value = FieldtypeImageReference::toJson();
         }
 
         return parent::setAttribute($key, $value);
@@ -119,7 +119,7 @@ class InputfieldImagePicker extends Inputfield implements Module
         $input = $this->wire('input');
 
         // render thumbnails only for ajax request
-        if ($input->InputfieldImagePicker && isset($input->pageid)) {
+        if ($input->InputfieldImageReference && isset($input->pageid)) {
             if((int) $input->pageid === 0) {
                 echo $this->getThumbnailsForFolder($this->folderpath);
             } else {
@@ -160,18 +160,19 @@ class InputfieldImagePicker extends Inputfield implements Module
 
     public function renderInputs($name, $value)
     {
-        $value = FieldtypeImagePicker::toJson($value->pageid, $value->filename);
+        $value = FieldtypeImageReference::toJson($value->pageid, $value->filename);
         return "<div>
-        <input type='hidden' class='imagepicker_value' name='{$name}' id='{$name}' value='{$value}' \>
+        <input type='hidden' class='imagereference_value' name='{$name}' id='{$name}' value='{$value}' \>
         </div>";
     }
 
     public function renderThumbnails()
     {
         $wrapper = new InputfieldWrapper;
-        $wrapper->attr('id', 'imagepicker_thumbs');
+        $wrapper->attr('id', 'imagereference_thumbs');
         foreach ($this->imagePages as $p) $wrapper->add($this->renderThumbnailsForPage($p));
         if($this->fromfolder && $this->folderpath) $wrapper->add($this->renderThumbnailsForFolder($this->folderpath));
+        if($this->anypage) $wrapper->add($this->pickFromAnyPage());
 
         /**
          * @todo: add pick image from any page.
@@ -196,9 +197,9 @@ class InputfieldImagePicker extends Inputfield implements Module
 			/** @var InputfieldButton $btn */
 			$btn = $this->modules->get('InputfieldButton');
 			// $uploadOnlyMode = "$this->page" === "$this->editorPage" ? 1 : 2;
-			$btn->href = "{$page->editUrl}&modal=1&fields={$imageFieldNames}&from=imagepicker";
+			$btn->href = "{$page->editUrl}&modal=1&fields={$imageFieldNames}&from=imagereference";
 			$btn->value = $this->_('Upload Image');
-			$btn->addClass('imagepicker_editimages pw-modal pw-modal-button pw-modal-button-visible'); 
+			$btn->addClass('imagereference_editimages pw-modal pw-modal-button pw-modal-button-visible'); 
 			$btn->icon = 'upload';
 			// $changes = $this->wire('input')->get('changes'); 
 			// if($changes) foreach(explode(',', $changes) as $name) {
@@ -208,15 +209,15 @@ class InputfieldImagePicker extends Inputfield implements Module
 			// 	$out .= "<script>refreshPageEditField('$name');</script>";
 			// }
             // $button = $btn->render();
-            $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagepicker' class='imagepicker_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
+            $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagereference' class='imagereference_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
 		}
 
         $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '">';
         if (!$this->useajax) $markup .= $this->getThumbnailsForPage($page->id);
         $markup .= '</ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
-        $markupField->class('imagepicker_thumbholder');
-        $markupField->id = "imagepicker_  thumbs_{$page->id}";
+        $markupField->class('imagereference_thumbholder');
+        $markupField->id = "imagereference_  thumbs_{$page->id}";
         // $markupField->attr('data-pageid', $page->id); // does not work
         $markupField->label = sprintf($this->_('Choose an image from page "%s"'), $page->title);
         $markupField->entityEncodeLabel = false;
@@ -239,7 +240,7 @@ class InputfieldImagePicker extends Inputfield implements Module
         if (!$this->useajax) $markup .= $this->getThumbnailsForFolder($folderpath);
         $markup .= '</ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
-        $markupField->class('imagepicker_thumbholder');
+        $markupField->class('imagereference_thumbholder');
         // $markupField->attr('data-pageid', $page->id); // does not work
         $markupField->label = sprintf($this->_('Choose an image from folder "%s"'), $folderpath);;
         $markupField->entityEncodeLabel = false;
@@ -247,6 +248,57 @@ class InputfieldImagePicker extends Inputfield implements Module
         $markupField->collapsed(1); 
 
         return $markupField;
+    }
+
+    /**
+     * lets user select a page and
+     * renders thumbnails for that page a InputfieldWrapper
+     *
+     * @param Page $page
+     * @return InputfieldWrapper inputfield wrapper instance
+     */
+    public function pickFromAnyPage()
+    {
+        // set initial value of PageListSelect
+        $value = 0;
+        $pageid = (int) wireDecodeJSON($this->attr('value'))['pageid'];
+        if( // pageid of stored image is not thet of editPage or one of the imagepages
+            ($pageid !== 0)
+            && ($this->frompage && $this->hasPage && $this->hasPage->id != $pageid)
+            && (!$this->imagePages->has($this->wire('pages')->get($pageid)))
+        ) $value = $pageid;    
+
+        
+        $wrapper = new InputfieldWrapper;
+        /** @var InputfieldPageListSelect $field */
+		$field = $this->modules->get("InputfieldPageListSelect"); 
+        $field->label = $this->_("Choose any page to get images from");
+        $field->startLabel = $this->_("Choose a page");
+        $field->showPath = false;
+        $field->description = ($value) 
+        ? $this->_("If you would like to select images from any page, select the page below.") 
+        : $this->_("If you would like to select images from a different page, select the page below.");
+		$field->attr('id+name', 'anypage'); 
+		if($value) $field->value = $value; 
+        $field->parent_id = 0; 
+		$field->collapsed = Inputfield::collapsedYes;
+        $wrapper->add($field);
+
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="">';
+        if ($value) $markup .= $this->getThumbnailsForPage($pageid);
+        $markup .= '</ul>';
+        $markupField = new InputfieldMarkup; 
+        $markupField->class('imagereference_thumbholder');
+        $markupField->id = "imagereference_thumbs_anypage";
+        $pageName = ($value) ? $this->wire->pages($pageid)->title : '';
+        $markupField->label = $this->_('Choose an image from page') . " \"<span id='imagereference_anypage_pagename'>{$pageName}</span>\"";
+        // $markupField->skipLabel = Inputfield::skipLabelHeader;
+        $markupField->entityEncodeLabel = false;
+        $markupField->markupText = $markup;
+        // $markupField->collapsed(1);
+        $markupField->showIf('anypage!=""');
+        $wrapper->add($markupField);
+        return $wrapper; 
     }
 
     /**
@@ -260,7 +312,9 @@ class InputfieldImagePicker extends Inputfield implements Module
         $page = $this->wire('pages')->get($pageid);
         $images = $this->getPageImages($page);
         if (!$images->count) {
-            $markup = '<b>' . $this->_('There are no images. Upload images to page') . ' ' . $page->title . '</b>';
+            $imageFields = $this->getImageFields($page);
+            $imageFieldNames = implode(',', array_keys($imageFields));
+            $markup = '<b>' . $this->_('There are no images. You first need to upload images to page') .  $page->title . '</b>';
         } else {
             $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
             $markup = '';
@@ -283,13 +337,8 @@ class InputfieldImagePicker extends Inputfield implements Module
      */
     public function getThumbnailsForFolder($folderpath)
     {
-        // $folder = $this->wire('config')->paths->templates . $folderpath;
         $baseUrl = $this->wire('config')->urls->templates . $folderpath;
-
-        // get files as pageimages
-        // $vPage = new ImagePickerVirtualpage($folder);
-        // $images = $vPage->virtualImages;
-        $images = FieldtypeImagePicker::getPageimages($folderpath);
+        $images = FieldtypeImageReference::getPageimages($folderpath);
 
         if (!$images->count) {
             $markup = '<b>' . $this->_('There are no images. Upload images to folder') . ' ' . $baseUrl . '</b>';
@@ -318,7 +367,9 @@ class InputfieldImagePicker extends Inputfield implements Module
         if ($img->description) $out .= '<br>' . $img->description;
         $out .= '<br>' . $img->filesizeStr;
         if (strtolower($img->ext) !== 'svg') $out .= '<br>' . "{$img->width} x {$img->height} px";
-        if($img->field && $img->field->name != 'imagepickervirtualfield') $out .= '<br>' . $this->_('Field:') . ' ' . $img->field->name;
+        if(!$img->page instanceof ImageReferenceVirtualpage) $out .= '<br>' . $this->_('Page:') . ' ' . $img->page->title;
+        if($img->page instanceof ImageReferenceVirtualpage) $out .= '<br>' . $this->_('Folder:') . ' ' . $this->folderpath;
+        if($img->field && $img->field->name != 'imagereferencevirtualfield') $out .= '<br>' . $this->_('Field:') . ' ' . $img->field->name;
 
         return $out;
     }
@@ -350,14 +401,14 @@ class InputfieldImagePicker extends Inputfield implements Module
     /**
      * gets all pages that serve image thumbnails to the inputfield
      *
-     * @return Pages
+     * @return PageArray might be empty, depending on options chosen for the field
      */
     public function getImagePages()
     {
         $pages = new PageArray;
         
         // parent and children of chosen page
-        if($this->imagespage) {
+        if($this->frompages && $this->imagespage) {
             $p = $this->wire('pages')->get($this->imagespage, array('include' => 'hidden'));
             if($p->id) {
                 $imageFields = $this->getImageFields($p);
@@ -418,7 +469,7 @@ class InputfieldImagePicker extends Inputfield implements Module
             }
         } elseif ((int) $value->pageid === 0 && $value->filename) {
             // get image from folder
-            $images = FieldtypeImagePicker::getPageimages($this->folderpath);
+            $images = FieldtypeImageReference::getPageimages($this->folderpath);
             $image = $images->getFile($value->filename);
         } elseif ((int) $value->pageid === 0 && empty($value->filename)) {
             // empty image
@@ -446,7 +497,7 @@ class InputfieldImagePicker extends Inputfield implements Module
         $value = $this->attr('value');
         $valueObj = json_decode($value);
         $newValue = json_decode($input[$name]);
-        if (!isset($newValue->filename) && !isset($newValue->pageid)) $newValue = json_decode(FieldtypeImagePicker::toJson());
+        if (!isset($newValue->filename) && !isset($newValue->pageid)) $newValue = json_decode(FieldtypeImageReference::toJson());
        
         $filename = $newValue->filename;
         $pageid = $newValue->pageid;
