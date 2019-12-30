@@ -1,4 +1,5 @@
 # FieldtypeImageReference & InputfieldImageReference
+**This module was renamed from the former ImagePicker Fieldtype and Inputfield. Due to the renaming, version v2.0.0 introduces breaking changes. If you have an older version already installed, you need to uninstall it first and then install v2.0.0**
 
 **Fieldtype Image Reference** is a Fieldtype that stores a reference to a single image from 
 * from a folder inside site/templates/
