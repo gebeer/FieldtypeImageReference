@@ -188,26 +188,9 @@ class InputfieldImageReference extends Inputfield implements Module
         $imageFields = $this->getImageFields($page);
 		if(count($imageFields)) {
 			$imageFieldNames = implode(',', array_keys($imageFields)); 
-			/** @var InputfieldButton $btn */
-			// $btn = $this->modules->get('InputfieldButton');
-			// $uploadOnlyMode = "$this->page" === "$this->editorPage" ? 1 : 2;
-			// $btn->href = "{$page->editUrl}&modal=1&fields={$imageFieldNames}&from=imagereference";
-			// $btn->value = $this->_('Upload Image');
-			// $btn->addClass('imagereference_editimages pw-modal pw-modal-button pw-modal-button-visible'); 
-			// $btn->icon = 'upload';
-			// $changes = $this->wire('input')->get('changes'); 
-			// if($changes) foreach(explode(',', $changes) as $name) {
-			// 	$name = $this->wire('sanitizer')->fieldName($name); 
-			// 	$field = $this->wire('fields')->get($name); 
-			// 	if(!$field) continue;
-			// 	$out .= "<script>refreshPageEditField('$name');</script>";
-			// }
-            // $button = $btn->render();
             $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagereference' class='imagereference_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
 		}
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '" data-imagesfields="' . htmlspecialchars(json_encode(array_keys($imageFields))) . '">';
-        if (!$this->useajax) $markup .= $this->getThumbnailsForPage($page->id);
-        $markup .= '</ul>';
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '" data-imagesfields="' . htmlspecialchars(json_encode(array_keys($imageFields))) . '"></ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
         $markupField->class('imagereference_thumbholder');
         $markupField->id = "imagereference_  thumbs_{$page->id}";
@@ -229,9 +212,7 @@ class InputfieldImageReference extends Inputfield implements Module
     public function renderThumbnailsForFolder($folderpath)
     {
 
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="0" data-folderpath="' . $folderpath . '">';
-        if (!$this->useajax) $markup .= $this->getThumbnailsForFolder($folderpath);
-        $markup .= '</ul>';
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="0" data-folderpath="' . $folderpath . '"></ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
         $markupField->class('imagereference_thumbholder');
         // $markupField->attr('data-pageid', $page->id); // does not work

@@ -29,7 +29,7 @@ Other than the native ProcessWire images field, the images here are not stored p
 * Images can be organized into categories. Child pages of the main 'image source page' serve as categories
 * Images can be loaded from any page on the site
 * From the API side, images can be manipulated like native ProcessWire images (resizing, cropping etc.), even the images from a folder
-* Image thumbnails are optionally loaded into inputfield by ajax on demand
+* Image thumbnails are loaded into inputfield by ajax on demand
 * Markup of SVG images can be rendered inline with `echo $image->svgcontent`
 * Image names are fully searchable through the API
 ```php
@@ -47,7 +47,6 @@ $pages->find('fieldname.filename%=xy.png');
 * Option to also include the images from the page being edited
 * Option to choose images from any page on the site
 * The image fields to use. These fields will supply images to the image reference field
-* Option to load thumbnails on demand via ajax. Especially useful when field is used inside repeaters or has many images
 * Width of chosen image in Inputfield.
 * Width of image thumbnails in Inputfield.
 
@@ -63,14 +62,13 @@ All settings are per field that you create from this fieldtype. This means you c
 5. Create a new field. As type choose 'Image Reference'. Save the field.
 6. Optional: in 'Details' Tab of the field choose the page you created in step 2
 7. Optional: click Save button
-8. Optional: choose the images field name for the field that holds your images (on page template from step 2)
 9. Optional: click Save button again
 10. Optional: upload images to a folder inside site/templates
 11. Optional: choose to use that folder as image source
 12. Optional: choose whether you want to include child pages of page from step 2 to supply images
-13. Optional: choose whether you want to include images from the page the field lives on.
+13. Optional: choose whether you want to include images from the page being edited
 14. Optional: choose images from any page of the site
-15. Optional: choose the images field name on the page that holds the images
+15. Optional: choose the images field names of the fields that supply images
 16. Add the field to any template
 17. You are now ready to use the field
 
