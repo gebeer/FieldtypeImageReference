@@ -33,21 +33,15 @@ var InputfieldImageReference = {
         });
     },
     initGetThumbnails: function (field) {
-        $(field).on('click', '.imagereference_thumbholder:not(#imagereference_thumbs_anypage)', function (e) {
+        $(field).on('click', '.imagereference_thumbholder', function (e) {
             if (e.target.closest('.uk-thumbnav')) return;
             var target = e.currentTarget;
             var thumbnav = target.querySelector('.uk-thumbnav');
             var pageid = thumbnav.getAttribute('data-pageid');
             var folderpath = thumbnav.getAttribute('data-folderpath');
-            var imagesfields = thumbnav.getAttribute('data-imagesfields');
-            var url = ProcessWire.config.InputfieldImageReference.url + '&pageid=' + pageid;
-            if (folderpath) url = url + '&folderpath=' + folderpath;
-            if (imagesfields) {
-                var fields = JSON.parse(imagesfields);
-                for (let index = 0; index < fields.length; index++) {
-                    url = url + '&imagesfields[' + index + ']=' + fields[index];
-                }
-            }
+            var config = InputfieldImageReference.getFieldconfig(field);
+            var url = InputfieldImageReference.buildUrl(config, pageid, folderpath);
+            console.log(url);
             var closed = target.classList.contains('InputfieldStateCollapsed');
             var empty = thumbnav.querySelector('li') === null;
             if (closed && empty) {
@@ -87,18 +81,24 @@ var InputfieldImageReference = {
         });
     },
     initSelectAnyPage: function (field) {
-        var inputAnypage = field.querySelector("#anypage");
+        var inputAnypage = field.querySelector(".imagereference_anypage");
         if (!inputAnypage) return;
-        var wrapAnypage = inputAnypage.closest('#wrap_anypage');
+        var wrapAnypage = inputAnypage.closest('.InputfieldPageListSelect');
         var thumbsField = wrapAnypage.nextSibling;
         var thumbnav = thumbsField.querySelector('.uk-thumbnav');
-        var thumbholderLabel = wrapAnypage.nextSibling.querySelector('#imagereference_anypage_pagename');
+        var thumbholderLabel = wrapAnypage.nextSibling.querySelector('.imagereference_anypage_pagename');
         $(inputAnypage).on("pageSelected", function (event, data) {
             var pageid = data.id;
-            var url = ProcessWire.config.InputfieldImageReference.url + '&pageid=' + pageid;
+            if(pageid === 0) { // page was unselected
+                thumbsField.classList.remove('in');
+                return;  
+            }
+            var config = InputfieldImageReference.getFieldconfig(field);
+            var url = InputfieldImageReference.buildUrl(config, pageid, null);
             var selectedTitle = wrapAnypage.querySelector('.PageListSelectName');
             InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav);
             thumbholderLabel.innerHTML = selectedTitle.innerHTML;
+            thumbsField.classList.add('in');
         });
 
         $(wrapAnypage).on("click", function (event) {
@@ -108,6 +108,20 @@ var InputfieldImageReference = {
         });
 
 
+    },
+    getFieldconfig: function(field) {
+        return config = ProcessWire.config.InputfieldImageReference[field.querySelector('input').getAttribute('data-fieldname')];
+    },
+    buildUrl: function(config, pageid, folderpath) {
+        var imagesfields = config.imagesfields;
+        var url =config.url + '&pageid=' + pageid;
+        if (imagesfields.length && !folderpath) {
+            for (let index = 0; index < imagesfields.length; index++) {
+                url = url + '&imagesfields[' + index + ']=' + imagesfields[index];
+            }
+        }
+        if(folderpath) url = url + '&folderpath=' + folderpath;
+        return url;
     }
 }
 

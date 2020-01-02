@@ -44,14 +44,14 @@
     top: -40px;
 }
 
-.InputfieldImageReference #imagereference_thumbs_anypage {
+.InputfieldImageReference .imagereference_thumbs_anypage {
     position: relative;
     display: none;
 }
-.InputfieldImageReference #imagereference_thumbs_anypage.in {
+.InputfieldImageReference .imagereference_thumbs_anypage.in {
     display: block;
 }
-.InputfieldImageReference #imagereference_thumbs_anypage:before {
+.InputfieldImageReference .imagereference_thumbs_anypage:before {
     content: '';
     position: absolute;
     top: -1px;
