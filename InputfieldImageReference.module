@@ -36,7 +36,7 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         return array(
             'title' => 'Image Reference',
-            'version' => 200,
+            'version' => 201,
             'summary' => __('Inputfield to select a single image from various sources on the site.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',

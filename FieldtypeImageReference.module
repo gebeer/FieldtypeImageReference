@@ -30,7 +30,7 @@ class FieldtypeImageReference extends Fieldtype
     {
         return array(
             'title' => __('Image Reference Fieldtype'),
-            'version' => 200,
+            'version' => 201,
             'summary' => __('Fieldtype that stores a reference to a single image from various sources on the site'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
