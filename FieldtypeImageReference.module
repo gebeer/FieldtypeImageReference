@@ -307,7 +307,11 @@ class FieldtypeImageReference extends Fieldtype
      */
     public function getInputfield(Page $page, Field $field)
     {
-        $inputfield = $this->modules->get('InputfieldImageReference');
+        $inputfield = new InputfieldImageReference;//$this->modules->get('InputfieldImageReference');
+        foreach($field->data as $key => $value) {
+            if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
+            $inputfield->set($key, $value);
+        }
         return $inputfield;
     }
 

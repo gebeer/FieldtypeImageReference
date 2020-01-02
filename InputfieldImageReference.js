@@ -15,7 +15,6 @@ var InputfieldImageReference = {
         var caption = field.querySelector('div.uk-panel .uk-thumbnail-caption');
         var remove = field.querySelector('div.uk-panel > span');
         var inputValue = field.querySelector('input.imagereference_value');
-        // var files = field.querySelectorAll('.uk-thumbnav img');
 
         remove.addEventListener('click', function (e) {
             preview.setAttribute('src', preview.getAttribute('data-src'));
@@ -39,7 +38,16 @@ var InputfieldImageReference = {
             var target = e.currentTarget;
             var thumbnav = target.querySelector('.uk-thumbnav');
             var pageid = thumbnav.getAttribute('data-pageid');
+            var folderpath = thumbnav.getAttribute('data-folderpath');
+            var imagesfields = thumbnav.getAttribute('data-imagesfields');
             var url = ProcessWire.config.InputfieldImageReference.url + '&pageid=' + pageid;
+            if (folderpath) url = url + '&folderpath=' + folderpath;
+            if (imagesfields) {
+                var fields = JSON.parse(imagesfields);
+                for (let index = 0; index < fields.length; index++) {
+                    url = url + '&imagesfields[' + index + ']=' + fields[index];
+                }
+            }
             var closed = target.classList.contains('InputfieldStateCollapsed');
             var empty = thumbnav.querySelector('li') === null;
             if (closed && empty) {
@@ -50,20 +58,21 @@ var InputfieldImageReference = {
     },
     fetchAndInsertThumbnails: function (url, thumbnav) {
         thumbnav.innerHTML = '<div uk-spinner></div>';
-        fetch(url)
-            .then(function (response) {
-                if (!response.ok) {
-                    throw Error(response.statusText);
+        xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                    html = xhr.responseText;
+                    thumbnav.innerHTML = html;
+                } else {
+                    console.log('There was a problem with the request.');
                 }
-                return response.text();
-            })
-            .then(function (html) {
-                // console.log(html);
-                thumbnav.innerHTML = html;
-            })
-            .catch(function (error) {
-                console.log('Looks like there was a problem: \n', error);
-            });
+            }
+
+        };
+        xhr.open('GET', url);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send();
     },
     initModalEditImages: function () {
         $(document).on("pw-modal-closed", function (event, ui) {
@@ -77,9 +86,9 @@ var InputfieldImageReference = {
             }
         });
     },
-    initSelectAnyPage: function(field) {
+    initSelectAnyPage: function (field) {
         var inputAnypage = field.querySelector("#anypage");
-        if(!inputAnypage) return;
+        if (!inputAnypage) return;
         var wrapAnypage = inputAnypage.closest('#wrap_anypage');
         var thumbsField = wrapAnypage.nextSibling;
         var thumbnav = thumbsField.querySelector('.uk-thumbnav');
@@ -91,13 +100,13 @@ var InputfieldImageReference = {
             InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav);
             thumbholderLabel.innerHTML = selectedTitle.innerHTML;
         });
-    
+
         $(wrapAnypage).on("click", function (event) {
-            if(thumbholderLabel.innerHTML) { // current image was chosen from any page
+            if (thumbholderLabel.innerHTML) { // current image was chosen from any page
                 thumbsField.classList.toggle('in');
             }
         });
-    
+
 
     }
 }

@@ -47,41 +47,21 @@ class InputfieldImageReference extends Inputfield implements Module
         );
     }
 
-    /**
-     * populates properties to inputfield
-     *
-     * @return void
-     */
-    public function populateValues()
-    {
-        // populate field settings data to this input
-        foreach($this->wire('fields')->get($this->name)->data as $key => $value) {
-            if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
-            $this->set($key, $value);
-        }
-
-        // populate imagepages 
-        $this->imagePages = $this->getImagePages();
-    }
-
-    /**
-     * populates config JS
-     *
-     * @return void
-     */
-    public function populateConfigJs()
-    {
+    public function init() {
+        // parent::init();
         $input = $this->wire('input');
-        if ($this->process == 'ProcessPageEdit') { // we are on a page edit screen
-            $editPageUrl = $this->wire('pages')->get($input->id)->editUrl . "&InputfieldImageReference=1";
-        } else { // other page 
-            $editPageUrl = $this->page->url . "?InputfieldImageReference=1";
+        // render thumbnails only for ajax request
+        if ($this->wire('config')->ajax && $input->{$this->className} && isset($input->pageid)) {
+            if($input->folderpath) {
+                echo $this->getThumbnailsForFolder($input->folderpath);
+            } else {
+                if($input->imagesfields) $this->set('imagesfields', $input->imagesfields); // populate imagesfields to make required methods work
+                echo $this->getThumbnailsForPage($input->pageid);
+            }
+            exit;
         }
-        $this->wire('config')->js($this->className, array(
-            'url' => $editPageUrl
-        ));
     }
-
+    
     /**
      * Set an attribute to this Inputfield
      *
@@ -107,6 +87,29 @@ class InputfieldImageReference extends Inputfield implements Module
     }
 
     /**
+     * populate URL for AJAX requests to congig->js
+     * do this in renderReady to make it work for field inside repeaters
+     *
+     * @param Inputfield $parent
+     * @param boolean $renderValueMode
+     * @return void
+     */
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false){
+		parent::renderReady();
+        if($this->wire('config')->js($this->className)) return; // config js already populated
+        
+        $input = $this->wire('input');
+        if ($this->process == 'ProcessPageEdit') { // we are on a page edit screen
+            $editPageUrl = $this->wire('pages')->get($input->id)->editUrl . "&{$this->className}=1";
+        } else { // other page 
+            $editPageUrl = $this->page->url . "?{$this->className}=1";
+        }
+        $this->wire('config')->js($this->className, array(
+            'url' => $editPageUrl
+        ));
+	}
+
+    /**
      * Return the completed output of Inputfield select file
      *
      * @return string
@@ -114,19 +117,10 @@ class InputfieldImageReference extends Inputfield implements Module
      */
     public function ___render()
     {
-        $this->populateValues();
-        $this->populateConfigJs();
-        $input = $this->wire('input');
-
-        // render thumbnails only for ajax request
-        if ($input->InputfieldImageReference && isset($input->pageid)) {
-            if((int) $input->pageid === 0) {
-                echo $this->getThumbnailsForFolder($this->folderpath);
-            } else {
-                echo $this->getThumbnailsForPage($input->pageid);
-            }
-            exit;
-        }
+        // populate imagepages 
+        $this->imagePages = $this->getImagePages();
+        // $this->populateValues();
+        // $this->populateConfigJs();
 
         $name = $this->attr('name');
         $value = json_decode($this->attr('value'));
@@ -195,12 +189,12 @@ class InputfieldImageReference extends Inputfield implements Module
 		if(count($imageFields)) {
 			$imageFieldNames = implode(',', array_keys($imageFields)); 
 			/** @var InputfieldButton $btn */
-			$btn = $this->modules->get('InputfieldButton');
+			// $btn = $this->modules->get('InputfieldButton');
 			// $uploadOnlyMode = "$this->page" === "$this->editorPage" ? 1 : 2;
-			$btn->href = "{$page->editUrl}&modal=1&fields={$imageFieldNames}&from=imagereference";
-			$btn->value = $this->_('Upload Image');
-			$btn->addClass('imagereference_editimages pw-modal pw-modal-button pw-modal-button-visible'); 
-			$btn->icon = 'upload';
+			// $btn->href = "{$page->editUrl}&modal=1&fields={$imageFieldNames}&from=imagereference";
+			// $btn->value = $this->_('Upload Image');
+			// $btn->addClass('imagereference_editimages pw-modal pw-modal-button pw-modal-button-visible'); 
+			// $btn->icon = 'upload';
 			// $changes = $this->wire('input')->get('changes'); 
 			// if($changes) foreach(explode(',', $changes) as $name) {
 			// 	$name = $this->wire('sanitizer')->fieldName($name); 
@@ -211,8 +205,7 @@ class InputfieldImageReference extends Inputfield implements Module
             // $button = $btn->render();
             $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagereference' class='imagereference_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
 		}
-
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '">';
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '" data-imagesfields="' . htmlspecialchars(json_encode(array_keys($imageFields))) . '">';
         if (!$this->useajax) $markup .= $this->getThumbnailsForPage($page->id);
         $markup .= '</ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
@@ -236,7 +229,7 @@ class InputfieldImageReference extends Inputfield implements Module
     public function renderThumbnailsForFolder($folderpath)
     {
 
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="0">';
+        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="0" data-folderpath="' . $folderpath . '">';
         if (!$this->useajax) $markup .= $this->getThumbnailsForFolder($folderpath);
         $markup .= '</ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
@@ -312,8 +305,8 @@ class InputfieldImageReference extends Inputfield implements Module
         $page = $this->wire('pages')->get($pageid);
         $images = $this->getPageImages($page);
         if (!$images->count) {
-            $imageFields = $this->getImageFields($page);
-            $imageFieldNames = implode(',', array_keys($imageFields));
+            // $imageFields = $this->getImageFields($page);
+            // $imageFieldNames = implode(',', array_keys($imageFields));
             $markup = '<b>' . $this->_('There are no images. You first need to upload images to page') .  $page->title . '</b>';
         } else {
             $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
@@ -406,7 +399,6 @@ class InputfieldImageReference extends Inputfield implements Module
     public function getImagePages()
     {
         $pages = new PageArray;
-        
         // parent and children of chosen page
         if($this->frompages && $this->imagespage) {
             $p = $this->wire('pages')->get($this->imagespage, array('include' => 'hidden'));
@@ -437,7 +429,8 @@ class InputfieldImageReference extends Inputfield implements Module
      */
     public function getPageImages($page)
     {
-        $imagefields = ($this->frompage && $page == $this->hasPage) ? $this->getImageFields($this->hasPage) : $this->getImageFields($page);
+        // $imagefields = ($this->frompage && $page == $this->hasPage) ? $this->getImageFields($this->hasPage) : $this->getImageFields($page);
+        $imagefields = $this->getImageFields($page);
         $images =  new Pageimages($page);
         foreach ($imagefields as $field) {
             foreach ($page->get($field->name) as $pageimage) $images->add($pageimage);
@@ -484,30 +477,4 @@ class InputfieldImageReference extends Inputfield implements Module
 
     }
 
-    /**
-     * Process the input after a form submission
-     * 
-     * @param WireInputData $input
-     * @return $this
-     *
-     */
-    public function ___processInput(WireInputData $input)
-    {
-        $name = $this->attr('name');
-        $value = $this->attr('value');
-        $valueObj = json_decode($value);
-        $newValue = json_decode($input[$name]);
-        if (!isset($newValue->filename) && !isset($newValue->pageid)) $newValue = json_decode(FieldtypeImageReference::toJson());
-       
-        $filename = $newValue->filename;
-        $pageid = $newValue->pageid;
-        if($valueObj->filename == $filename && $valueObj->pageid == $pageid) return $this;
-
-        $this->attr('value', json_encode($newValue));
-
-        $page = ($this->hasPage) ? $this->hasPage : $this->page;
-        $page->set($name, $this->attr('value'));
-
-        return $this;
-    }
 }
