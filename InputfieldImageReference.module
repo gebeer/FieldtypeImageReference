@@ -54,11 +54,18 @@ class InputfieldImageReference extends Inputfield implements Module
         // render thumbnails for ajax request
         if ($this->wire('config')->ajax && $input->{$this->className} && isset($input->pageid)) {
             if ($input->folderpath) {
+                $this->set('folderpath', $input->folderpath);
                 echo $this->getThumbnailsForFolder($input->folderpath);
             } else {
                 if ($input->imagesfields) $this->set('imagesfields', $input->imagesfields); // populate imagesfields to make required methods work
                 echo $this->getThumbnailsForPage($input->pageid);
             }
+            exit;
+        }
+
+        if ($this->wire('config')->ajax && $input->{$this->className} && $input->post && $input->folderpath && !empty($_FILES["uppyfiles"])) {
+            $result = $this->uploadFileToFolder($_FILES["uppyfiles"], $input->folderpath);
+            echo $result;
             exit;
         }
     }
@@ -89,6 +96,7 @@ class InputfieldImageReference extends Inputfield implements Module
 
     /**
      * populate data for AJAX requests to $congig->js
+     * load dependencies for file upload into folder
      * do this in renderReady to make it work for fields inside repeaters
      *
      * @param Inputfield $parent
@@ -98,7 +106,7 @@ class InputfieldImageReference extends Inputfield implements Module
     public function renderReady(Inputfield $parent = null, $renderValueMode = false)
     {
         parent::renderReady();
-
+        // populate config js
         if (isset($this->wire('config')->js($this->className)[$this->hasField->name])) return; // config js already populated for this field
 
         $editPageUrl = ($this->process == 'ProcessPageEdit') ? $this->wire('pages')->get($this->wire('input')->id)->editUrl : $this->page->url;
@@ -112,6 +120,13 @@ class InputfieldImageReference extends Inputfield implements Module
         );
         $otherFields = ($this->wire('config')->js($this->className)) ? $this->wire('config')->js($this->className) : array();
         $this->wire('config')->js($this->className, array_merge($otherFields, $fieldConfig));
+
+        // load dependencies for file upload to folder
+        if ($this->fromfolder) {
+            $config = $this->wire('config');
+            $config->scripts->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.js");
+            $config->styles->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.css");
+        }
     }
 
     /**
@@ -124,8 +139,6 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         // populate imagepages 
         $this->imagePages = $this->getImagePages();
-        // $this->populateValues();
-        // $this->populateConfigJs();
 
         $name = $this->attr('name');
         $value = json_decode($this->attr('value'));
@@ -193,9 +206,9 @@ class InputfieldImageReference extends Inputfield implements Module
         $imageFields = $this->getImageFields($page);
         if (count($imageFields)) {
             $imageFieldNames = implode(',', array_keys($imageFields));
-            $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagereference' class='imagereference_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
+            $button = "<a href='{$page->editUrl}&fields={$imageFieldNames}&from=imagereference' class='imagereference_edit imagereference_editimages pw-modal' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
         }
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="' . $page->id . '" data-imagesfields="' . htmlspecialchars(json_encode(array_keys($imageFields))) . '"></ul>';
+        $markup = '<ul class="uk-thumbnav" data-pageid="' . $page->id . '" data-imagesfields="' . htmlspecialchars(json_encode(array_keys($imageFields))) . '"></ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
         $markupField->class('imagereference_thumbholder');
         $markupField->id = "imagereference_  thumbs_{$page->id}";
@@ -216,14 +229,17 @@ class InputfieldImageReference extends Inputfield implements Module
      */
     public function renderThumbnailsForFolder($folderpath)
     {
-
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="0" data-folderpath="' . $folderpath . '"></ul>';
+        // $button = "<a href='{$this->hasPage->editUrl}&{$this->className}=1&folderpath={$folderpath}&uploadtofolder=1' class='imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
+        $button = "<a href='#' class='imagereference_edit imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip><i class='fa fa-upload'></i></a>";
+        $uppy = '<div class="uppy">
+        <div class="for-DashboardContainer"></div>
+        </div>';
+        $markup = '<ul class="uk-thumbnav" data-pageid="0" data-folderpath="' . $folderpath . '"></ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
         $markupField->class('imagereference_thumbholder');
-        // $markupField->attr('data-pageid', $page->id); // does not work
         $markupField->label = sprintf($this->_('Choose an image from folder "%s"'), $folderpath);;
         $markupField->entityEncodeLabel = false;
-        $markupField->markupText = $markup;
+        $markupField->markupText = $button . $uppy . $markup;
         $markupField->collapsed(1);
 
         return $markupField;
@@ -264,12 +280,12 @@ class InputfieldImageReference extends Inputfield implements Module
         $field->collapsed = Inputfield::collapsedYes;
         $wrapper->add($field);
 
-        $markup = '<ul class="uk-thumbnav uk-grid-width-1-6" data-pageid="">';
+        $markup = '<ul class="uk-thumbnav" data-pageid="">';
         if ($value) $markup .= $this->getThumbnailsForPage($pageid);
         $markup .= '</ul>';
         $markupField = new InputfieldMarkup;
         $class = 'imagereference_thumbs_anypage';
-        if($value) $class .= ' in';
+        if ($value) $class .= ' in';
         $markupField->class($class);
         $pageName = ($value) ? $this->wire->pages($pageid)->title : '';
         $markupField->label = $this->_('Choose an image from page') . " \"<span class='imagereference_anypage_pagename'>{$pageName}</span>\"";
@@ -301,7 +317,7 @@ class InputfieldImageReference extends Inputfield implements Module
             $markup = '';
             foreach ($images as $img) {
                 $tooltip = $this->renderTooltip($img);
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'>
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>
                 <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$page->id}' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}'>
                 </li>";
             }
@@ -328,7 +344,8 @@ class InputfieldImageReference extends Inputfield implements Module
             $markup = '';
             foreach ($images as $img) {
                 $tooltip = $this->renderTooltip($img);
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini'>
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>
+                
                 <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}'>
                 </li>";
             }
@@ -339,7 +356,7 @@ class InputfieldImageReference extends Inputfield implements Module
 
     /**
      * creates tooltip markup
-     * @param mixed $img Pageimage|string|null either a Pageimage object, filename string or null
+     * @param mixed $img Pageimage|null either a Pageimage object or null
      */
     public function renderTooltip($img)
     {
@@ -463,5 +480,42 @@ class InputfieldImageReference extends Inputfield implements Module
         }
 
         return $image;
+    }
+
+    /**
+     * uploads files provided by uppy post request to specified folder
+     *
+     * @param array $file file array from $_FILES["uppyfiles"]
+     * @param string $folderpath
+     * @return string json encoded data
+     * @throws WireException
+     */
+    protected function uploadFileToFolder($file, $folderpath)
+    {
+        $fullPath = FieldtypeImageReference::getBasePath($folderpath);
+        $targetFile = $fullPath . basename($file['name'][0]);
+        try {
+            $uploaded = (new WireUpload('uppyfiles'))
+                ->setValidExtensions(['svg', 'png', 'jpg', 'jpeg', 'gif'])
+                ->setMaxFiles(1)
+                ->setMaxFileSize(10 * pow(2, 20)) // 10MB
+                ->setDestinationPath($fullPath)
+                ->execute();
+            if (!empty($uploaded)) {
+                header('Access-Control-Allow-Origin: *');
+                header('Content-type: application/json');
+                $data = ['url' => $targetFile, 'message' => 'The file ' . $uploaded[0] . ' has been uploaded.'];
+                http_response_code(201);
+                return json_encode($data);
+            } else {
+                throw new WireException('Unable to move the uploaded file to its final location:' . $targetFile);
+            }
+        } catch (\Throwable $th) {
+            header('Access-Control-Allow-Origin: *');
+            header('Content-type: application/json');
+            $data = ['message' => 'Sorry, there was an error uploading your file.', 'error' => $th->getMessage()];
+            http_response_code(400);
+            return json_encode($data);
+        }
     }
 }

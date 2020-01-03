@@ -11,6 +11,7 @@ var InputfieldImageReference = {
         if (!field.classList.contains('imagereference_initialised')) field.classList.add('imagereference_initialised');
         InputfieldImageReference.initGetThumbnails(field);
         InputfieldImageReference.initSelectAnyPage(field);
+        InputfieldImageReference.initEditImagesFolder(field);
         var preview = field.querySelector('div.uk-panel img');
         var caption = field.querySelector('div.uk-panel .uk-thumbnail-caption');
         var remove = field.querySelector('div.uk-panel > span');
@@ -41,7 +42,6 @@ var InputfieldImageReference = {
             var folderpath = thumbnav.getAttribute('data-folderpath');
             var config = InputfieldImageReference.getFieldconfig(field);
             var url = InputfieldImageReference.buildUrl(config, pageid, folderpath);
-            console.log(url);
             var closed = target.classList.contains('InputfieldStateCollapsed');
             var empty = thumbnav.querySelector('li') === null;
             if (closed && empty) {
@@ -75,9 +75,68 @@ var InputfieldImageReference = {
                 var field = link.closest('.InputfieldImageReference')[0];
                 var thumbnav = link.siblings('.uk-thumbnav')[0];
                 var pageid = thumbnav.getAttribute('data-pageid');
-                var url = ProcessWire.config.InputfieldImageReference.url + '&pageid=' + pageid;
+                var config = InputfieldImageReference.getFieldconfig(field);
+                var url = InputfieldImageReference.buildUrl(config, pageid, null);
                 InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav, field);
             }
+        });
+    },
+    initEditImagesFolder: function (field) {
+        if (!field.querySelector(".imagereference_editimages_folder")) return;
+        $(field).on("click", '.imagereference_editimages_folder', function (event) {
+            var target = event.target;
+            if (!target.classList.contains('imagereference_editimages_folder')) {
+                target = event.currentTarget;
+            }
+            event.preventDefault();
+            field.querySelector('.uppy').classList.add('in');
+            var link = $(target);
+            // var field = link.closest('.InputfieldImageReference')[0];
+            var thumbnav = link.siblings('.uk-thumbnav')[0];
+            var folderpath = thumbnav.getAttribute('data-folderpath');
+            var pageid = thumbnav.getAttribute('data-pageid');
+            var config = InputfieldImageReference.getFieldconfig(field);
+            var postUrl = config.url;
+            var getUrl = InputfieldImageReference.buildUrl(config, pageid, folderpath);
+            var uppy = Uppy.Core({
+                debug: true,
+                autoProceed: false,
+                meta: {
+                    folderpath: folderpath
+                }
+            });
+            console.log(postUrl);
+            uppy
+                .use(Uppy.Dashboard, {
+                    trigger: target,
+                    inline: false,
+                    target: field.querySelector('.for-DashboardContainer'),
+                    replaceTargetContent: true,
+                    showProgressDetails: true,
+                    height: 470,
+                    closeAfterFinish: true,
+                    /* metaFields: [
+                        { id: 'name', name: 'Name', placeholder: 'file name' }
+                    ], */
+                    browserBackButtonClose: true
+                })
+                .use(Uppy.Xhr, {
+                    endpoint: postUrl,
+                    formData: true,
+                    fieldName: 'uppyfiles[]',
+                    metaFields: ['name', 'folderpath'],
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .on('complete', result => {
+                    // console.log('successful files:', result.successful)
+                    // console.log('failed files:', result.failed)
+                    InputfieldImageReference.fetchAndInsertThumbnails(getUrl, thumbnav, field)
+                });
+                uppy.getPlugin('Dashboard').openModal();
+
+            // InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav, field);
         });
     },
     initSelectAnyPage: function (field) {
@@ -89,9 +148,9 @@ var InputfieldImageReference = {
         var thumbholderLabel = wrapAnypage.nextSibling.querySelector('.imagereference_anypage_pagename');
         $(inputAnypage).on("pageSelected", function (event, data) {
             var pageid = data.id;
-            if(pageid === 0) { // page was unselected
+            if (pageid === 0) { // page was unselected
                 thumbsField.classList.remove('in');
-                return;  
+                return;
             }
             var config = InputfieldImageReference.getFieldconfig(field);
             var url = InputfieldImageReference.buildUrl(config, pageid, null);
@@ -109,18 +168,18 @@ var InputfieldImageReference = {
 
 
     },
-    getFieldconfig: function(field) {
+    getFieldconfig: function (field) {
         return config = ProcessWire.config.InputfieldImageReference[field.querySelector('input').getAttribute('data-fieldname')];
     },
-    buildUrl: function(config, pageid, folderpath) {
+    buildUrl: function (config, pageid, folderpath) {
         var imagesfields = config.imagesfields;
-        var url =config.url + '&pageid=' + pageid;
+        var url = config.url + '&pageid=' + pageid;
         if (imagesfields.length && !folderpath) {
             for (let index = 0; index < imagesfields.length; index++) {
                 url = url + '&imagesfields[' + index + ']=' + imagesfields[index];
             }
         }
-        if(folderpath) url = url + '&folderpath=' + folderpath;
+        if (folderpath) url = url + '&folderpath=' + folderpath;
         return url;
     }
 }

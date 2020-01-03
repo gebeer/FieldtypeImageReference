@@ -45,17 +45,24 @@ class ImageReferenceVirtualpage extends Page
         // $this->virtualImages = $this->get($imgField->name);
     }
     
-    protected function populateImages($imagefield)
+    public function populateImages()
     {
-        // add all files in folder
+        // $imagefield = new FieldtypeImage;
+        // $imagefield->name = 'imagereferencevirtualimages';
+        // $imagefield->id = 999;
+        // $imagefield = $this->wire('fields')->get("type=FieldtypeImage, maxFiles!=1");
+        // $fieldgroup = new Fieldgroup;
+        // $fieldgroup->add($imagefield);
+        // $this->template->setFieldgroup($fieldgroup);
+        // // add all files in folder
         foreach($this->filesManager()->getFiles() as $file) {
-            $pageimage = new Pageimage($this->$imagefield, $this->path . $file);
+            $pageimage = new Pageimage(new Pageimages($this), $this->path . $file);
             // skip if image is a variation 
             $variation = $pageimage->isVariation($file, array('allowSelf' => true));
             if($variation) continue;
             // add custom propery svgcontent
             if(strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImageReference::getFileContent($pageimage));
-            $this->$imagefield->add($pageimage/* $this->path . $file */);
+            $this->{$imagefield->name}->add($pageimage/* $this->path . $file */);
         }
     }
 

@@ -105,17 +105,18 @@ class ImageReferenceHookHelper extends WireData implements Module
      * @param Hookevent $event
      * @return Page ImageReferenceVirtualpage object
      */
-    // public function loadImageReferenceVirtualpage(Hookevent $event) {
-    //     $id = $event->arguments(0);
-    //     $imagereferencefield = $this->wire('input')->imagereferencefield;
-    //     if(!$imagereferencefield) return;
-    //     if($id != 999999999) return;
-    //     $event->replace = true;
-    //     $path = $this->wire('config')->paths->templates . $this->wire('fields')->get($imagereferencefield)->folderpath;
-    //     $vPage = new ImageReferenceVirtualpage($path);
-    //     $event->return = $vPage;
+    public function loadImageReferenceVirtualpage(Hookevent $event) {
+        $id = $event->arguments(0);
+        $imagereferencefield = $this->wire('input')->imagereferencefield;
+        if(!$imagereferencefield) return;
+        if($id != 999999999) return;
+        $event->replace = true;
+        $path = $this->wire('config')->paths->templates . $this->wire('fields')->get($imagereferencefield)->folderpath;
+        $vPage = new ImageReferenceVirtualpage($path);
+        $vPage->populateImages();
+        $event->return = $vPage;
 
-    // }
+    }
 
     /**
      * prevent processing of delete request to avoid falsy session notification about deletion 
