@@ -56,8 +56,7 @@ var InputfieldImageReference = {
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 if (xhr.status === 200) {
-                    html = xhr.responseText;
-                    thumbnav.innerHTML = html;
+                    thumbnav.innerHTML = xhr.responseText;
                 } else {
                     console.log('There was a problem with the request.');
                 }
@@ -91,13 +90,18 @@ var InputfieldImageReference = {
             event.preventDefault();
             field.querySelector('.uppy').classList.add('in');
             var link = $(target);
-            // var field = link.closest('.InputfieldImageReference')[0];
             var thumbnav = link.siblings('.uk-thumbnav')[0];
             var folderpath = thumbnav.getAttribute('data-folderpath');
             var pageid = thumbnav.getAttribute('data-pageid');
             var config = InputfieldImageReference.getFieldconfig(field);
             var postUrl = config.url;
             var getUrl = InputfieldImageReference.buildUrl(config, pageid, folderpath);
+            var tokenName = 'X-' + config.csrf.name;
+            // var fieldName = field.querySelector('input.imagereference_value').getAttribute('name');
+            var headers = {};
+            headers['X-Requested-With'] = 'XMLHttpRequest';
+            headers[tokenName] = config.csrf.value;
+            // headers['HTTP_X_FIELDNAME'] = fieldName;
             var uppy = Uppy.Core({
                 debug: true,
                 autoProceed: false,
@@ -105,7 +109,6 @@ var InputfieldImageReference = {
                     folderpath: folderpath
                 }
             });
-            console.log(postUrl);
             uppy
                 .use(Uppy.Dashboard, {
                     trigger: target,
@@ -122,12 +125,11 @@ var InputfieldImageReference = {
                 })
                 .use(Uppy.Xhr, {
                     endpoint: postUrl,
+                    method: 'post',
                     formData: true,
                     fieldName: 'uppyfiles[]',
                     metaFields: ['name', 'folderpath'],
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: headers
                 })
                 .on('complete', result => {
                     // console.log('successful files:', result.successful)
@@ -136,7 +138,6 @@ var InputfieldImageReference = {
                 });
                 uppy.getPlugin('Dashboard').openModal();
 
-            // InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav, field);
         });
     },
     initSelectAnyPage: function (field) {
@@ -176,10 +177,10 @@ var InputfieldImageReference = {
         var url = config.url + '&pageid=' + pageid;
         if (imagesfields.length && !folderpath) {
             for (let index = 0; index < imagesfields.length; index++) {
-                url = url + '&imagesfields[' + index + ']=' + imagesfields[index];
+                url += '&imagesfields[' + index + ']=' + imagesfields[index];
             }
         }
-        if (folderpath) url = url + '&folderpath=' + folderpath;
+        if (folderpath) url += '&folderpath=' + folderpath;
         return url;
     }
 }

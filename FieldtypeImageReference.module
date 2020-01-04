@@ -29,8 +29,8 @@ class FieldtypeImageReference extends Fieldtype
     public static function getModuleInfo()
     {
         return array(
-            'title' => __('Image Reference Fieldtype'),
-            'version' => 201,
+            'title' => __('Image Reference'),
+            'version' => 202,
             'summary' => __('Fieldtype that stores a reference to a single image from various sources on the site'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
@@ -307,7 +307,8 @@ class FieldtypeImageReference extends Fieldtype
      */
     public function getInputfield(Page $page, Field $field)
     {
-        $inputfield = new InputfieldImageReference;//$this->modules->get('InputfieldImageReference');
+        /** @var InputfieldImageReference $inputfield */
+        $inputfield = $this->modules->get('InputfieldImageReference');
         foreach($field->data as $key => $value) {
             if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
             $inputfield->set($key, $value);

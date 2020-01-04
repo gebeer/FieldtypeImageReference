@@ -2,6 +2,8 @@
 
 namespace ProcessWire;
 
+use \TracyDebugger;
+
 /**
  * Inputfield 'Image Reference' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
  * Per field you can set a page to list from.
@@ -36,10 +38,11 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         return array(
             'title' => 'Image Reference',
-            'version' => 201,
+            'version' => 202,
             'summary' => __('Inputfield to select a single image from various sources on the site.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
+            'autoload' => 'template=admin', // 'process=ProcessPageEdit',
             'requires' => array(
                 'FieldtypeImageReference',
                 'PHP>=7.1.0',
@@ -47,27 +50,33 @@ class InputfieldImageReference extends Inputfield implements Module
             )
         );
     }
-
+    
     public function init()
     {
+        parent::init();
+        $this->handleAjaxCalls();
+    }
+
+    public function handleAjaxCalls()
+    {
+        if(!$this->wire('config')->ajax) return;
         $input = $this->wire('input');
+        if (!isset($input->{$this->className})) return;
         // render thumbnails for ajax request
-        if ($this->wire('config')->ajax && $input->{$this->className} && isset($input->pageid)) {
+        if (isset($input->pageid)) {
             if ($input->folderpath) {
                 $this->set('folderpath', $input->folderpath);
-                echo $this->getThumbnailsForFolder($input->folderpath);
+                $out = $this->getThumbnailsForFolder($input->folderpath);
             } else {
                 if ($input->imagesfields) $this->set('imagesfields', $input->imagesfields); // populate imagesfields to make required methods work
-                echo $this->getThumbnailsForPage($input->pageid);
+                $out = $this->getThumbnailsForPage($input->pageid);
             }
-            exit;
+            echo $out;
+            exit();
         }
+        // handle file uploads to folder sent by uppy
+        if(!empty($_FILES["uppyfiles"])) $this->handleUploadFileToFolder();
 
-        if ($this->wire('config')->ajax && $input->{$this->className} && $input->post && $input->folderpath && !empty($_FILES["uppyfiles"])) {
-            $result = $this->uploadFileToFolder($_FILES["uppyfiles"], $input->folderpath);
-            echo $result;
-            exit;
-        }
     }
 
     /**
@@ -111,11 +120,13 @@ class InputfieldImageReference extends Inputfield implements Module
 
         $editPageUrl = ($this->process == 'ProcessPageEdit') ? $this->wire('pages')->get($this->wire('input')->id)->editUrl : $this->page->url;
         $url = ($this->process == 'ProcessPageEdit') ? $editPageUrl . "&{$this->className}=1" : $editPageUrl . "?{$this->className}=1";
+        // $url .= "&field={$this->name}";
         $imagesfields = ($this->frompages || $this->frompage || $this->anypage) ? $this->imagesfields : array();
         $fieldConfig = array(
             $this->hasField->name => array(
-                'url' => $url,
-                'imagesfields' => $imagesfields
+                'url' => $url, // $this->ajaxURL,
+                'imagesfields' => $imagesfields,
+                'csrf' => array('name' => $this->wire('session')->CSRF->getTokenName(), 'value' => $this->wire('session')->CSRF->getTokenValue())
             )
         );
         $otherFields = ($this->wire('config')->js($this->className)) ? $this->wire('config')->js($this->className) : array();
@@ -485,14 +496,17 @@ class InputfieldImageReference extends Inputfield implements Module
     /**
      * uploads files provided by uppy post request to specified folder
      *
-     * @param array $file file array from $_FILES["uppyfiles"]
-     * @param string $folderpath
-     * @return string json encoded data
+     * @return void
      * @throws WireException
      */
-    protected function uploadFileToFolder($file, $folderpath)
+    protected function handleUploadFileToFolder()
     {
-        $fullPath = FieldtypeImageReference::getBasePath($folderpath);
+
+        $input = $this->wire('input');
+        if (!$input->{$this->className} /* && $input->post  */ && !$input->folderpath && empty($_FILES["uppyfiles"])) return;
+        $file = $_FILES["uppyfiles"];
+
+        $fullPath = FieldtypeImageReference::getBasePath($input->folderpath);
         $targetFile = $fullPath . basename($file['name'][0]);
         try {
             $uploaded = (new WireUpload('uppyfiles'))
@@ -506,7 +520,7 @@ class InputfieldImageReference extends Inputfield implements Module
                 header('Content-type: application/json');
                 $data = ['url' => $targetFile, 'message' => 'The file ' . $uploaded[0] . ' has been uploaded.'];
                 http_response_code(201);
-                return json_encode($data);
+                echo json_encode($data);
             } else {
                 throw new WireException('Unable to move the uploaded file to its final location:' . $targetFile);
             }
@@ -515,7 +529,8 @@ class InputfieldImageReference extends Inputfield implements Module
             header('Content-type: application/json');
             $data = ['message' => 'Sorry, there was an error uploading your file.', 'error' => $th->getMessage()];
             http_response_code(400);
-            return json_encode($data);
+            echo json_encode($data);
         }
+        exit();
     }
 }
