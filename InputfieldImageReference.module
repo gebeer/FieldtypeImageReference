@@ -329,7 +329,7 @@ class InputfieldImageReference extends Inputfield implements Module
             foreach ($images as $img) {
                 $tooltip = $this->renderTooltip($img);
                 $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>
-                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$page->id}' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}'>
+                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$page->id}' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
                 </li>";
             }
         }
@@ -357,7 +357,7 @@ class InputfieldImageReference extends Inputfield implements Module
                 $tooltip = $this->renderTooltip($img);
                 $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>
                 
-                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}'>
+                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
                 </li>";
             }
         }

@@ -25,7 +25,7 @@ var InputfieldImageReference = {
         $(field).on('click', '.uk-thumbnav img', function (e) {
             var file = this;
             var src = file.getAttribute('src');
-            var fileinfo = file.getAttribute('uk-tooltip');
+            var fileinfo = file.getAttribute('data-title');
             var filename = file.getAttribute('data-filename');
             var pageid = file.getAttribute('data-pageid');
             preview.setAttribute('src', src);
