@@ -2,7 +2,6 @@
 
 namespace ProcessWire;
 
-use \TracyDebugger;
 
 /**
  * Inputfield 'Image Reference' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
