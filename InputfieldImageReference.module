@@ -2,7 +2,6 @@
 
 namespace ProcessWire;
 
-
 /**
  * Inputfield 'Image Reference' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
  * Per field you can set a page to list from.
@@ -511,7 +510,7 @@ class InputfieldImageReference extends Inputfield implements Module
             $uploaded = (new WireUpload('uppyfiles'))
                 ->setValidExtensions(['svg', 'png', 'jpg', 'jpeg', 'gif'])
                 ->setMaxFiles(1)
-                ->setMaxFileSize(10 * pow(2, 20)) // 10MB
+                // ->setMaxFileSize(10 * pow(2, 20)) // 10MB
                 ->setDestinationPath($fullPath)
                 ->execute();
             if (!empty($uploaded)) {
