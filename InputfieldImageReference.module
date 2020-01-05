@@ -116,8 +116,9 @@ class InputfieldImageReference extends Inputfield implements Module
     public function renderReady(Inputfield $parent = null, $renderValueMode = false)
     {
         parent::renderReady();
+        $config = $this->wire('config');
         // populate config js
-        if (isset($this->wire('config')->js($this->className)[$this->hasField->name])) return; // config js already populated for this field
+        if (isset($config->js($this->className)[$this->hasField->name])) return; // config js already populated for this field
 
         $editPageUrl = ($this->process == 'ProcessPageEdit') ? $this->wire('pages')->get($this->wire('input')->id)->editUrl : $this->page->url;
         $url = ($this->process == 'ProcessPageEdit') ? $editPageUrl . "&{$this->className}=1" : $editPageUrl . "?{$this->className}=1";
@@ -142,14 +143,18 @@ class InputfieldImageReference extends Inputfield implements Module
                 'maxFileSize' => $maxFileSize
             )
         );
-        $otherFields = ($this->wire('config')->js($this->className)) ? $this->wire('config')->js($this->className) : array();
-        $this->wire('config')->js($this->className, array_merge($otherFields, $fieldConfig));
+        $otherFields = ($config->js($this->className)) ? $config->js($this->className) : array();
+        $config->js($this->className, array_merge($otherFields, $fieldConfig));
 
         // load dependencies for file upload to folder
         if ($this->fromfolder && $this->wire('user')->hasPermission('imagereference-folder-upload')) {
-            $config = $this->wire('config');
             $config->scripts->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.js");
             $config->styles->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.css");
+        }
+
+        // load dependencies for field inside repeater
+        if($this->anypage) { // get assets for pagelist select
+            $config->scripts->add($config->urls->InputfieldPageListSelect . 'InputfieldPageListSelect.js');
         }
     }
 
