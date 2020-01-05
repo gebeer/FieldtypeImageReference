@@ -11,7 +11,7 @@ var InputfieldImageReference = {
         if (!field.classList.contains('imagereference_initialised')) field.classList.add('imagereference_initialised');
         InputfieldImageReference.initGetThumbnails(field);
         InputfieldImageReference.initSelectAnyPage(field);
-        InputfieldImageReference.initEditImagesFolder(field);
+        InputfieldImageReference.initUploadImagesFolder(field);
         var preview = field.querySelector('div.uk-panel img');
         var caption = field.querySelector('div.uk-panel .uk-thumbnail-caption');
         var remove = field.querySelector('div.uk-panel > span');
@@ -80,7 +80,7 @@ var InputfieldImageReference = {
             }
         });
     },
-    initEditImagesFolder: function (field) {
+    initUploadImagesFolder: function (field) {
         if (!field.querySelector(".imagereference_editimages_folder")) return;
         $(field).on("click", '.imagereference_editimages_folder', function (event) {
             var target = event.target;
@@ -103,7 +103,7 @@ var InputfieldImageReference = {
             headers[tokenName] = config.csrf.value;
             // headers['HTTP_X_FIELDNAME'] = fieldName;
             var uppy = Uppy.Core({
-                debug: true,
+                debug: false,
                 autoProceed: false,
                 meta: {
                     folderpath: folderpath

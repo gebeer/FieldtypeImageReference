@@ -36,7 +36,7 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         return array(
             'title' => 'Image Reference',
-            'version' => 202,
+            'version' => 203,
             'summary' => __('Inputfield to select a single image from various sources on the site.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
@@ -45,10 +45,14 @@ class InputfieldImageReference extends Inputfield implements Module
                 'FieldtypeImageReference',
                 'PHP>=7.1.0',
                 'ProcessWire>=3.0.120'
+            ),
+            'permissions' => array(
+                'imagereference-folder-upload' => 'Upload images to the defined folder in ImageReference inputfields',
+                'imagereference-folder-delete' => 'Delete images from the defined folder in ImageReference inputfields'
             )
         );
     }
-    
+
     public function init()
     {
         parent::init();
@@ -57,7 +61,7 @@ class InputfieldImageReference extends Inputfield implements Module
 
     public function handleAjaxCalls()
     {
-        if(!$this->wire('config')->ajax) return;
+        if (!$this->wire('config')->ajax) return;
         $input = $this->wire('input');
         if (!isset($input->{$this->className})) return;
         // render thumbnails for ajax request
@@ -73,8 +77,7 @@ class InputfieldImageReference extends Inputfield implements Module
             exit();
         }
         // handle file uploads to folder sent by uppy
-        if(!empty($_FILES["uppyfiles"])) $this->handleUploadFileToFolder();
-
+        if (!empty($_FILES["uppyfiles"])) $this->handleUploadFileToFolder();
     }
 
     /**
@@ -238,8 +241,9 @@ class InputfieldImageReference extends Inputfield implements Module
      */
     public function renderThumbnailsForFolder($folderpath)
     {
-        // $button = "<a href='{$this->hasPage->editUrl}&{$this->className}=1&folderpath={$folderpath}&uploadtofolder=1' class='imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip data-buttons='button#submit_save' data-autoclose><i class='fa fa-upload'></i></a>";
-        $button = "<a href='#' class='imagereference_edit imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip><i class='fa fa-upload'></i></a>";
+        $button = ($this->user->hasPermission('imagereference-folder-upload'))
+            ? "<a href='#' class='imagereference_edit imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip><i class='fa fa-upload'></i></a>"
+            : '';
         $uppy = '<div class="uppy">
         <div class="for-DashboardContainer"></div>
         </div>';
@@ -353,9 +357,10 @@ class InputfieldImageReference extends Inputfield implements Module
             $markup = '';
             foreach ($images as $img) {
                 $tooltip = $this->renderTooltip($img);
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>
-                
-                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
+                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>";
+                if ($this->user->hasPermission('imagereference-folder-delete'))
+                    $markup .= "<span class='fa fa-trash' uk-tooltip='title: Delete Image'></span>";
+                $markup .= "<img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
                 </li>";
             }
         }
@@ -530,5 +535,26 @@ class InputfieldImageReference extends Inputfield implements Module
             echo json_encode($data);
         }
         exit();
+    }
+
+    public function ___upgrade($fromVersion, $toVersion)
+    {
+        if (version_compare($fromVersion, $toVersion == -1)) {
+            if ($toVersion == '203') {
+                // install permissions
+                $permissions = $this->wire('permissions');
+                foreach ($this->getModuleInfo()['permissions'] as $name => $title) {
+                    if ($permissions->has($name)) continue;
+                    $perm = $permissions->add($name);
+                    if($perm->id) {
+                        $perm->title = $title;
+                        $permissions->save($perm);
+                        $this->wire('log')->message('Installed permission ' . $name, true);
+                    } else {
+                        $this->wire('log')->error("Permission {$name} could not be created. Please create it manually", true);
+                    }
+                }
+            }
+        }
     }
 }
