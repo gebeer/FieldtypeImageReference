@@ -36,7 +36,7 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         return array(
             'title' => 'Image Reference',
-            'version' => 203,
+            'version' => 210,
             'summary' => __('Inputfield to select a single image from various sources on the site.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
@@ -540,11 +540,10 @@ class InputfieldImageReference extends Inputfield implements Module
     public function ___upgrade($fromVersion, $toVersion)
     {
         if (version_compare($fromVersion, $toVersion == -1)) {
-            if ($toVersion == '203') {
+            if ((int) $toVersion > 202) {
                 // install permissions
-                $permissions = $this->wire('permissions');
                 foreach ($this->getModuleInfo()['permissions'] as $name => $title) {
-                    if ($permissions->has($name)) continue;
+                    $permissions = $this->wire('permissions');
                     $perm = $permissions->add($name);
                     if($perm->id) {
                         $perm->title = $title;
