@@ -308,8 +308,8 @@ class FieldtypeImageReference extends Fieldtype
     {
         /** @var InputfieldImageReference $inputfield */
         $inputfield = $this->modules->get('InputfieldImageReference');
-        foreach($field->data as $key => $value) {
-            if($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
+        foreach ($field->data as $key => $value) {
+            if ($key == 'folderpath') $value = trim(trim($value, '/')) . '/';
             $inputfield->set($key, $value);
         }
         return $inputfield;
@@ -495,7 +495,7 @@ class FieldtypeImageReference extends Fieldtype
             if (!$modules->isInstalled('ImageReferenceHookHelper')) $modules->install('ImageReferenceHookHelper');
             $this->wire('log')->save('modules', 'installed module ImageReferenceHookHelper');
 
-            if ($toVersion == '1.1.4') {
+            if ($toVersion == '114') {
                 // update field settings
                 foreach ($this->wire('fields') as $field) {
                     if (!$frompagefields = $field->get('imagesfieldspage')) continue;
@@ -615,6 +615,28 @@ class FieldtypeImageReference extends Fieldtype
         if ($field->fromfolder) $f->required(1);
         if ($field->fromfolder && !$field->folderpath) $f->error('You must enter a folder path');
         $wrapper->add($f);
+
+        /** @var Field $f */
+        $f = $this->modules->get('InputfieldText');
+        $f->attr('name', 'maxSize');
+        $f->label = $this->_('Max Megabytes for images in folder');
+        $f->description = $this->_('Specify in MB');
+        $f->notes = $this->_('Examples: 1MB, 2.5MB, 10MB');
+        $f->attr('value', $field->maxSize ? $field->maxSize : '');
+        $f->showIf = 'fromfolder=1';
+        $f->columnWidth = 50;
+        $wrapper->add($f);
+
+        /** @var InputfieldTextarea $f */
+        $f = $this->modules->get('InputfieldTextarea');
+        $f->attr('name', 'allowed_extensions');
+        $f->attr('value', $field->get('allowed_extensions') ? $field->get('allowed_extensions') : "gif jpg jpeg png svg");
+        $f->attr('rows', 3);
+        $f->label = $this->_('Valid File Extensions for Images in Folder');
+        $f->description = $this->_('Enter all file extensions allowed to upload into folder. Separate each extension by a space. No periods or commas. This field is not case sensitive.');
+        $f->showIf = 'fromfolder=1';
+        $f->columnWidth = 50;
+        $wrapper->append($f);
 
         $sourceswrapper->add($wrapper);
 

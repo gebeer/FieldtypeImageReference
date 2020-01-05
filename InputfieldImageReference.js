@@ -88,11 +88,13 @@ var InputfieldImageReference = {
                 target = event.currentTarget;
             }
             event.preventDefault();
-            field.querySelector('.uppy').classList.add('in');
             var link = $(target);
             var thumbnav = link.siblings('.uk-thumbnav')[0];
             var folderpath = thumbnav.getAttribute('data-folderpath');
             var pageid = thumbnav.getAttribute('data-pageid');
+            var uppyContainer = field.querySelector('.uppy');
+            var extensions = uppyContainer.getAttribute('data-allowed');
+            var maxsize = uppyContainer.getAttribute('data-maxsize');
             var config = InputfieldImageReference.getFieldconfig(field);
             var postUrl = config.url;
             var getUrl = InputfieldImageReference.buildUrl(config, pageid, folderpath);
@@ -105,6 +107,10 @@ var InputfieldImageReference = {
             var uppy = Uppy.Core({
                 debug: false,
                 autoProceed: false,
+                restrictions: {
+                    maxFileSize: config.maxFileSize,
+                    allowedFileTypes: config.allowedFileTypes
+                },
                 meta: {
                     folderpath: folderpath
                 }
@@ -113,11 +119,12 @@ var InputfieldImageReference = {
                 .use(Uppy.Dashboard, {
                     trigger: target,
                     inline: false,
-                    target: field.querySelector('.for-DashboardContainer'),
+                    target: uppyContainer,
                     replaceTargetContent: true,
                     showProgressDetails: true,
                     height: 470,
                     closeAfterFinish: true,
+                    note: 'Max file size: ' + maxsize + ', Allowed extensions: ' + extensions,
                     /* metaFields: [
                         { id: 'name', name: 'Name', placeholder: 'file name' }
                     ], */
@@ -136,7 +143,7 @@ var InputfieldImageReference = {
                     // console.log('failed files:', result.failed)
                     InputfieldImageReference.fetchAndInsertThumbnails(getUrl, thumbnav, field)
                 });
-                uppy.getPlugin('Dashboard').openModal();
+            uppy.getPlugin('Dashboard').openModal();
 
         });
     },

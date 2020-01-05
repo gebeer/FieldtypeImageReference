@@ -123,18 +123,30 @@ class InputfieldImageReference extends Inputfield implements Module
         $url = ($this->process == 'ProcessPageEdit') ? $editPageUrl . "&{$this->className}=1" : $editPageUrl . "?{$this->className}=1";
         // $url .= "&field={$this->name}";
         $imagesfields = ($this->frompages || $this->frompage || $this->anypage) ? $this->imagesfields : array();
+        // set allowed file extensions for images uploaded to folder
+        if ($this->fromfolder && $this->allowed_extensions){
+            $allowedFiletypes = array_map(function($el){
+                return '.' . trim($el);
+            }, explode(' ', $this->allowed_extensions));
+        } else {
+            $allowedFiletypes = null;
+        }
+        // set max file size in bytes for images uploaded to folder
+        $maxFileSize = ($this->fromfolder && $this->maxSize) ? (float) trim(str_replace('MB', '', $this->maxSize)) * 1024 *1024 : null;
         $fieldConfig = array(
             $this->hasField->name => array(
                 'url' => $url, // $this->ajaxURL,
                 'imagesfields' => $imagesfields,
-                'csrf' => array('name' => $this->wire('session')->CSRF->getTokenName(), 'value' => $this->wire('session')->CSRF->getTokenValue())
+                'csrf' => array('name' => $this->wire('session')->CSRF->getTokenName(), 'value' => $this->wire('session')->CSRF->getTokenValue()),
+                'allowedFileTypes' => $allowedFiletypes,
+                'maxFileSize' => $maxFileSize
             )
         );
         $otherFields = ($this->wire('config')->js($this->className)) ? $this->wire('config')->js($this->className) : array();
         $this->wire('config')->js($this->className, array_merge($otherFields, $fieldConfig));
 
         // load dependencies for file upload to folder
-        if ($this->fromfolder) {
+        if ($this->fromfolder && $this->wire('user')->hasPermission('imagereference-folder-upload')) {
             $config = $this->wire('config');
             $config->scripts->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.js");
             $config->styles->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.css");
@@ -244,9 +256,7 @@ class InputfieldImageReference extends Inputfield implements Module
         $button = ($this->user->hasPermission('imagereference-folder-upload'))
             ? "<a href='#' class='imagereference_edit imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip><i class='fa fa-upload'></i></a>"
             : '';
-        $uppy = '<div class="uppy">
-        <div class="for-DashboardContainer"></div>
-        </div>';
+        $uppy = '<div class="uppy" data-allowed="' . $this->allowed_extensions . '" data-maxsize="' . $this->maxSize . '"></div>';
         $markup = '<ul class="uk-thumbnav" data-pageid="0" data-folderpath="' . $folderpath . '"></ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
         $markupField->class('imagereference_thumbholder');

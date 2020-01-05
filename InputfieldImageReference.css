@@ -60,10 +60,3 @@
     height: 1px;
     background-color: #fff;
 }
-.InputfieldImageReference .uppy {
-    display: none;
-    margin-bottom: 2rem;
-}
-.InputfieldImageReference .uppy.in {
-    display: block;
-}
