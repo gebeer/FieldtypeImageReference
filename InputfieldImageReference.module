@@ -362,7 +362,7 @@ class InputfieldImageReference extends Inputfield implements Module
      */
     public function getThumbnailsForFolder($folderpath)
     {
-        $baseUrl = $this->wire('config')->urls->templates . $folderpath;
+        $baseUrl = FieldtypeImageReference::getBaseUrl($folderpath);
         $images = FieldtypeImageReference::getPageimages($folderpath);
 
         if (!$images->count) {

@@ -171,22 +171,32 @@ class FieldtypeImageReference extends Fieldtype
     {
         $filePath = self::getBasePath($field->folderpath) . $value->filename;
         $fileUrl = self::getFileUrl($field->folderpath, $value->filename);
-        if (file_exists($filePath)) {
-            return $filePath;
-        } else {
-            $field->getInputfield($page)->error("File does not exist: {$fileUrl}");
-        }
+        if (file_exists($filePath)) return $filePath;
+        $field->getInputfield($page)->error("File does not exist: {$fileUrl}");
     }
 
     /**
-     * Return fill disk path to folder
+     * Return full disk path to folder
      *
      * @param string $folderpath
      * @return string disk path
      */
     static public function getBasePath($folderpath)
     {
-        return wire('config')->paths->templates . $folderpath;
+        if (file_exists(wire('config')->paths->templates . $folderpath)) return wire('config')->paths->templates . $folderpath;
+        if (file_exists(wire('config')->paths->assets . $folderpath)) return wire('config')->paths->assets . $folderpath;
+    }
+
+    /**
+     * Return url to folder
+     *
+     * @param string $folderpath
+     * @return string relative url
+     */
+    static public function getBaseUrl($folderpath)
+    {
+        if (file_exists(wire('config')->paths->templates . $folderpath)) return wire('config')->urls->templates . $folderpath;
+        if (file_exists(wire('config')->paths->assets . $folderpath)) return wire('config')->urls->assets . $folderpath;
     }
 
     /**
@@ -197,7 +207,8 @@ class FieldtypeImageReference extends Fieldtype
      */
     static public function getFileUrl($folderpath, $basename)
     {
-        return $this->wire('config')->urls->templates . $folderpath . $basename;
+        if (file_exists(wire('config')->paths->templates . $folderpath)) return $this->wire('config')->urls->templates . $folderpath . $basename;
+        if (file_exists(wire('config')->paths->assets . $folderpath)) return $this->wire('config')->urls->assets . $folderpath . $basename;
     }
 
     /**
@@ -537,11 +548,19 @@ class FieldtypeImageReference extends Fieldtype
 
         $errorfolder = false;
         if ($field->fromfolder && $field->folderpath) {
-            $folder = $this->config->paths->templates . ltrim($field->folderpath, '/');
-            $path = $this->config->urls->templates . ltrim($field->folderpath, '/');
-            if ($field->folderpath && !is_dir($folder)) {
-                $errorfolder = sprintf($this->_("Folder %s doesn't exist."), $path);
-            } elseif ($field->folderpath && count(scandir($folder)) == 2) {
+            $folderpath = ltrim($field->folderpath, '/');
+            if(file_exists($this->config->paths->templates . $folderpath)) {
+                $folder = $this->config->paths->templates . $folderpath;
+                $path = $this->config->urls->templates . $folderpath;
+            };
+            if(file_exists($this->config->paths->assets . $folderpath)) {
+                $folder = $this->config->paths->assets . $folderpath;
+                $path = $this->config->urls->assets . $folderpath;
+            };
+
+            if (!isset($folder)) {
+                $errorfolder = sprintf($this->_("Folder %s doesn't exist."), $folderpath);
+            } elseif (count(scandir($folder)) == 2) {
                 $errorfolder = sprintf($this->_("Folder %s is empty. You need to upload images."), $path);
             }
         }
@@ -605,12 +624,14 @@ class FieldtypeImageReference extends Fieldtype
         $f->attr('name', 'folderpath');
         $f->label = $this->_("The folder containing the images.");
         $f->attr('value', $field->folderpath);
-        $f->description =
-            sprintf($this->_('A path relative to the **%s** folder.'), $this->config->urls->templates);
-        $f->notes =
-            $this->_("When the files are located in /site/templates/images/icons/, type: images/icons/");
+        $f->description = sprintf($this->_('A path relative to the **%1$s** or **%2$s**'), $this->config->urls->templates, $this->config->urls->assets);
+        $f->notes = $this->_("When the files are located in /site/templates/images/icons/, type: images/icons/");
+        $f->notes .= ' ' . $this->_("When the files are located in /site/assets/icons/, type: icons/");
         $f->getErrors(true);
-        if ($errorfolder) $f->error($errorfolder);
+        if ($errorfolder) {
+            $f->error($errorfolder);
+            $this->error($errorfolder);
+        }
         $f->showIf('fromfolder=1');
         if ($field->fromfolder) $f->required(1);
         if ($field->fromfolder && !$field->folderpath) $f->error('You must enter a folder path');
@@ -620,7 +641,7 @@ class FieldtypeImageReference extends Fieldtype
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'maxSize');
         $f->label = $this->_('Max Megabytes for images in folder');
-        $f->description = $this->_('Specify in MB');
+        $f->description = $this->_('Specify in MB. Leave empty for no size restriction');
         $f->notes = $this->_('Examples: 1MB, 2.5MB, 10MB');
         $f->attr('value', $field->maxSize ? $field->maxSize : '');
         $f->showIf = 'fromfolder=1';
@@ -642,12 +663,12 @@ class FieldtypeImageReference extends Fieldtype
 
         /* images from page*/
         $wrapper = new InputfieldFieldset;
-        $wrapper->label = $this->_("Pick images from the page the field lives on?");
+        $wrapper->label = $this->_("Pick images from the page being edited?");
 
         /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
         $f->attr('name', 'frompage');
-        $f->label2 = $this->_("Pick from the page the field lives on?");
+        $f->label2 = $this->_("Pick from the page being edited?");
         $f->skipLabel(4);
         $f->description = $this->_('Images from the page that is being edited, will be supplied. The page must have an images field for this option to work.');
         $f->attr('checked', $field->frompage ? 'checked' : '');
