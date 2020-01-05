@@ -9,22 +9,23 @@ The image can be selected with the associated Inputfield.
 
 **Inputfield Image Reference** is an Inputfield to select a single image from 
 * images on another page and optionally its children
-* and/or from a folder inside site/templates/
+* and/or from a folder inside site/templates/ or site/assets/
 * and/or from the page that is being edited 
-* and/or from any page on the site.
+* and/or from any page on the site
 
 ![Inputfield in page edior](images/inputfield-in-editor.png)
 You can upload/edit images to other pages from within the input field
 ![Upload images to other pages from within field](images/upload-edit-from-field.png)
 
 ### When to use ?
-If you want to let editors choose an image from a set of images that is being used site-wide. Ideal for images that are being re-used across the site (e.g. icons, but not limited to that).
+If you want to let editors choose an image from a set of images that is being used site-wide. Ideal for images that are being re-used across the site (e.g. icons, but not limited to that). If you want to manage (upload/delete) images inside a folder that do not belong to a single page.
 Other than the native ProcessWire images field, the images here are not stored per page. Only references to images that live on other pages or inside a folder are stored. This has several advantages:
 * one central place to organize images
 * when images change, you only have to update them in one place. All references will be updated, too. (Provided the name of the image that has changed stays the same)
 
 ### Features
-* Images can be loaded from a folder inside site/templates/
+* Images can be loaded from a folder inside site/templates/ or site/assets
+* Images in that folder can be uploaded and deleted from the inputfield
 * Images can be loaded from other pages defined as image source
 * Images can be organized into categories. Child pages of the main 'image source page' serve as categories
 * Images can be loaded from any page on the site
@@ -41,9 +42,10 @@ $pages->find('fieldname.filename%=xy.png');
 
 ### Settings / Options
 * The page containing the images to choose from.
-    - images from that page and optionally it's child pages will be used as site-wide images.
-* Option to include images from child pages of the page that contains images
+    - Images from that page and optionally it's child pages will be used as site-wide images.
+* Option to include images from child pages of the page above
 * A folder containing the images to choose from
+  * Image extensions and max file size for images in folder
 * Option to also include the images from the page being edited
 * Option to choose images from any page on the site
 * The image fields to use. These fields will supply images to the image reference field
@@ -63,7 +65,7 @@ All settings are per field that you create from this fieldtype. This means you c
 6. Optional: in 'Details' Tab of the field choose the page you created in step 2
 7. Optional: click Save button
 9. Optional: click Save button again
-10. Optional: upload images to a folder inside site/templates
+10. Optional: upload images to a folder inside site/templates/ or site/assets/
 11. Optional: choose to use that folder as image source
 12. Optional: choose whether you want to include child pages of page from step 2 to supply images
 13. Optional: choose whether you want to include images from the page being edited
@@ -95,5 +97,4 @@ $pages->find('fieldname.pageid=1234');
 This module was developed based on ideas from forum members in [this forum thread](https://processwire.com/talk/topic/22732-fieldtypeimagefrompage-pick-an-image-from-various-sources/)
 
 ### Roadmap
-* upload widget for images in folder
 * allow to choose multiple images
