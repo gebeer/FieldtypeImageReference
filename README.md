@@ -74,6 +74,12 @@ All settings are per field that you create from this fieldtype. This means you c
 16. Add the field to any template
 17. You are now ready to use the field
 
+### Permissions
+The module installs 2 permissions:
+* imagereference-folder-upload
+* imagereference-folder-delete
+If you want non-superusers to be able to upload and delete images in folders, you need to assign those permissions to their roles.
+
 ### How to use in template files
 ```php
 // render image 
