@@ -1,7 +1,6 @@
 <?php
 
 namespace ProcessWire;
-use \TD;
 /**
  * Inputfield 'Image Reference' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
  * Per field you can set a page to list from.
