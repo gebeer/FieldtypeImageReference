@@ -152,6 +152,10 @@ class InputfieldImageReference extends Inputfield implements Module
             $config->styles->add($config->urls->siteModules . "FieldtypeImageReference/assets/ImageReferenceUppy.min.css");
         }
 
+        // load dependencies for file delete in folder
+        // if ($this->fromfolder && $this->wire('user')->hasPermission('imagereference-folder-delete')) {
+        // }
+
         // load dependencies for field inside repeater
         if($this->anypage) { // get assets for pagelist select
             $config->scripts->add($config->urls->InputfieldPageListSelect . 'InputfieldPageListSelect.js');
@@ -341,14 +345,7 @@ class InputfieldImageReference extends Inputfield implements Module
             // $imageFieldNames = implode(',', array_keys($imageFields));
             $markup = '<b>' . $this->_('There are no images. You first need to upload images to page') .  $page->title . '</b>';
         } else {
-            $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
-            $markup = '';
-            foreach ($images as $img) {
-                $tooltip = $this->renderTooltip($img);
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>
-                <img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$page->id}' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
-                </li>";
-            }
+            $markup = $this->getThumbnails($images, $page->id);
         }
 
         return $markup;
@@ -368,18 +365,31 @@ class InputfieldImageReference extends Inputfield implements Module
         if (!$images->count) {
             $markup = '<b>' . $this->_('There are no images. Upload images to folder') . ' ' . $baseUrl . '</b>';
         } else {
-            $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
-            $markup = '';
-            foreach ($images as $img) {
-                $tooltip = $this->renderTooltip($img);
-                $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>";
-                if ($this->user->hasPermission('imagereference-folder-delete'))
-                    $markup .= "<span class='fa fa-trash' uk-tooltip='title: Delete Image'></span>";
-                $markup .= "<img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='0' data-filename='{$img->basename}' src='{$img->width($thumbWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
-                </li>";
-            }
+            $markup = $this->getThumbnails($images, 0);
         }
 
+        return $markup;
+    }
+
+    /**
+     * renders thumbnail markup
+     *
+     * @param Pageimages $images
+     * @param int $pageid
+     * @return string thumbnail markup
+     */
+    public function getThumbnails($images, $pageid) {
+        $previewWidth = ($this->previewWidth) ? $this->previewWidth : 200;
+        $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
+        $markup = '';
+        foreach ($images as $img) {
+            $tooltip = $this->renderTooltip($img);
+            $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>";
+            if ($this->user->hasPermission('imagereference-folder-delete'))
+                $markup .= "<span class='fa fa-trash' uk-tooltip='title: Delete Image'></span>";
+            $markup .= "<img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$pageid}' data-filename='{$img->basename}' src='{$img->width($previewWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
+            </li>";
+        }
         return $markup;
     }
 
