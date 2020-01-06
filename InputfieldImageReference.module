@@ -1,7 +1,7 @@
 <?php
 
 namespace ProcessWire;
-
+use \TD;
 /**
  * Inputfield 'Image Reference' provides a means for selecting a single image from a predefined page and it's children and/or a folder and/or the page being edited.
  * Per field you can set a page to list from.
@@ -69,13 +69,19 @@ class InputfieldImageReference extends Inputfield implements Module
             if ($input->folderpath) {
                 $this->set('folderpath', $input->folderpath);
                 $out = $this->getThumbnailsForFolder($input->folderpath);
-            } else {
-                if ($input->imagesfields) $this->set('imagesfields', $input->imagesfields); // populate imagesfields to make required methods work
+            } elseif ($input->imagesfields) {
+                $this->set('imagesfields', $input->imagesfields); // populate imagesfields to make required methods work
                 $out = $this->getThumbnailsForPage($input->pageid);
             }
             echo $out;
             exit();
         }
+
+        // delete image from folder
+        if (isset($input->deleteimage) && isset($input->fieldname)) {
+            $this->deleteImageFromFolder($input->deleteimage, $input->fieldname);
+        }
+
         // handle file uploads to folder sent by uppy
         if (!empty($_FILES["uppyfiles"])) $this->handleUploadFileToFolder();
     }
@@ -125,15 +131,15 @@ class InputfieldImageReference extends Inputfield implements Module
         // $url .= "&field={$this->name}";
         $imagesfields = ($this->frompages || $this->frompage || $this->anypage) ? $this->imagesfields : array();
         // set allowed file extensions for images uploaded to folder
-        if ($this->fromfolder && $this->allowed_extensions){
-            $allowedFiletypes = array_map(function($el){
+        if ($this->fromfolder && $this->allowed_extensions) {
+            $allowedFiletypes = array_map(function ($el) {
                 return '.' . trim($el);
             }, explode(' ', $this->allowed_extensions));
         } else {
             $allowedFiletypes = null;
         }
         // set max file size in bytes for images uploaded to folder
-        $maxFileSize = ($this->fromfolder && $this->maxSize) ? (float) trim(str_replace('MB', '', $this->maxSize)) * 1024 *1024 : null;
+        $maxFileSize = ($this->fromfolder && $this->maxSize) ? (float) trim(str_replace('MB', '', $this->maxSize)) * 1024 * 1024 : null;
         $fieldConfig = array(
             $this->hasField->name => array(
                 'url' => $url, // $this->ajaxURL,
@@ -157,7 +163,7 @@ class InputfieldImageReference extends Inputfield implements Module
         // }
 
         // load dependencies for field inside repeater
-        if($this->anypage) { // get assets for pagelist select
+        if ($this->anypage) { // get assets for pagelist select
             $config->scripts->add($config->urls->InputfieldPageListSelect . 'InputfieldPageListSelect.js');
         }
     }
@@ -266,7 +272,7 @@ class InputfieldImageReference extends Inputfield implements Module
             ? "<a href='#' class='imagereference_edit imagereference_editimages_folder' title='" . $this->_('Upload Images') . "' uk-tooltip><i class='fa fa-upload'></i></a>"
             : '';
         $uppy = '<div class="uppy" data-allowed="' . $this->allowed_extensions . '" data-maxsize="' . $this->maxSize . '"></div>';
-        $markup = '<ul class="uk-thumbnav" data-pageid="0" data-folderpath="' . $folderpath . '"></ul>';
+        $markup = '<ul class="uk-thumbnav imagereference_thumbs_folder" data-pageid="0" data-folderpath="' . $folderpath . '"></ul>';
         $markupField = new InputfieldMarkup; // $this->wire('modules')->get('InputfieldMarkup');
         $markupField->class('imagereference_thumbholder');
         $markupField->label = sprintf($this->_('Choose an image from folder "%s"'), $folderpath);;
@@ -378,15 +384,16 @@ class InputfieldImageReference extends Inputfield implements Module
      * @param int $pageid
      * @return string thumbnail markup
      */
-    public function getThumbnails($images, $pageid) {
+    public function getThumbnails($images, $pageid)
+    {
         $previewWidth = ($this->previewWidth) ? $this->previewWidth : 200;
         $thumbWidth = ($this->thumbWidth) ? $this->thumbWidth : 100;
         $markup = '';
         foreach ($images as $img) {
             $tooltip = $this->renderTooltip($img);
             $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>";
-            if ($this->user->hasPermission('imagereference-folder-delete'))
-                $markup .= "<span class='fa fa-trash' uk-tooltip='title: Delete Image'></span>";
+            if ($pageid === 0 && $this->user->hasPermission('imagereference-folder-delete'))
+                $markup .= "<span class='fa fa-trash imagereference_deleteimage' uk-tooltip='title: Delete Image'></span>";
             $markup .= "<img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$pageid}' data-filename='{$img->basename}' src='{$img->width($previewWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
             </li>";
         }
@@ -562,6 +569,44 @@ class InputfieldImageReference extends Inputfield implements Module
         exit();
     }
 
+    /**
+     * delete an image from folder
+     *
+     * @param string $basename
+     * @param string $fieldname
+     * @return string JSON response
+     */
+    public function deleteImageFromFolder($basename, $fieldname) {
+        header('Content-type: application/json');
+        $response = new \stdClass;
+        $field = $this->wire('fields')->get($fieldname);
+        // check if this image is used on any other page with this field
+        $page = $this->wire('pages')->get("{$fieldname}.pageid=0, {$fieldname}.filename={$basename}");
+        $repeater = '';
+        if($page->id) {
+            while (strpos($page->template->name, 'repeater_') !== false) {
+                $fieldname = $page->getForField();
+                $page = $page->getForPage();
+                $repeater = '(repeater field)';
+            }
+            $response->error = sprintf($this->_('Cannot delete image because it is used on page %1$s in field %2$s %3$s'), $page->title, $fieldname, $repeater);
+            $response->error .= '<br>' . sprintf($this->_('You need to remove the image first %s'), "<br><a href='{$page->editUrl}&field={$fieldname}'>Edit page {$page->title}</a>");
+        } else {
+            $folderpath = FieldtypeImageReference::getBasePath($field->get('folderpath'));
+            try {
+                if(unlink($folderpath . $basename)) {
+                    $response->message = sprintf($this->_('Image %s deleted'), $basename);
+                } else {
+                    $response->error = sprintf($this->_('Cannot delete Image %s'), $basename);
+                }
+            } catch (\Throwable $th) {
+                $response->error = sprintf($this->_('An error occured %s'), $th->getMessage());
+            }
+        }
+        echo json_encode($response);
+        exit();
+    }
+
     public function ___upgrade($fromVersion, $toVersion)
     {
         if (version_compare($fromVersion, $toVersion == -1)) {
@@ -570,7 +615,7 @@ class InputfieldImageReference extends Inputfield implements Module
                 foreach ($this->getModuleInfo()['permissions'] as $name => $title) {
                     $permissions = $this->wire('permissions');
                     $perm = $permissions->add($name);
-                    if($perm->id) {
+                    if ($perm->id) {
                         $perm->title = $title;
                         $permissions->save($perm);
                         $this->wire('log')->message('Installed permission ' . $name, true);

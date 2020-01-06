@@ -12,6 +12,7 @@ var InputfieldImageReference = {
         InputfieldImageReference.initGetThumbnails(field);
         InputfieldImageReference.initSelectAnyPage(field);
         InputfieldImageReference.initUploadImagesFolder(field);
+        InputfieldImageReference.initDeleteImagesFolder(field);
         var preview = field.querySelector('div.uk-panel img');
         var caption = field.querySelector('div.uk-panel .uk-thumbnail-caption');
         var remove = field.querySelector('div.uk-panel > span');
@@ -41,31 +42,21 @@ var InputfieldImageReference = {
             var pageid = thumbnav.getAttribute('data-pageid');
             var folderpath = thumbnav.getAttribute('data-folderpath');
             var config = InputfieldImageReference.getFieldconfig(field);
-            var url = InputfieldImageReference.buildUrl(config, pageid, folderpath);
+            var params = InputfieldImageReference.buildParams(config, pageid, folderpath);
             var closed = target.classList.contains('InputfieldStateCollapsed');
             var empty = thumbnav.querySelector('li') === null;
             if (closed && empty) {
-                InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav);
+                InputfieldImageReference.fetchAndInsertThumbnails(config.url, params, thumbnav);
             }
         });
 
     },
-    fetchAndInsertThumbnails: function (url, thumbnav) {
+    fetchAndInsertThumbnails: function (url, params, thumbnav) {
         thumbnav.innerHTML = '<div uk-spinner></div>';
-        xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    thumbnav.innerHTML = xhr.responseText;
-                } else {
-                    console.log('There was a problem with the request.');
-                }
-            }
-
-        };
-        xhr.open('GET', url);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.send();
+        InputfieldImageReference.xhrRequest(url, params)
+            .done(function (html) {
+                thumbnav.innerHTML = html;
+            });
     },
     initModalEditImages: function () {
         $(document).on("pw-modal-closed", function (event, ui) {
@@ -75,8 +66,8 @@ var InputfieldImageReference = {
                 var thumbnav = link.siblings('.uk-thumbnav')[0];
                 var pageid = thumbnav.getAttribute('data-pageid');
                 var config = InputfieldImageReference.getFieldconfig(field);
-                var url = InputfieldImageReference.buildUrl(config, pageid, null);
-                InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav, field);
+                var params = InputfieldImageReference.buildParams(config, pageid, null);
+                InputfieldImageReference.fetchAndInsertThumbnails(config.url, params, thumbnav);
             }
         });
     },
@@ -96,8 +87,8 @@ var InputfieldImageReference = {
             var extensions = uppyContainer.getAttribute('data-allowed');
             var maxsize = uppyContainer.getAttribute('data-maxsize');
             var config = InputfieldImageReference.getFieldconfig(field);
-            var postUrl = config.url;
-            var getUrl = InputfieldImageReference.buildUrl(config, pageid, folderpath);
+            var url = config.url;
+            var data = InputfieldImageReference.buildParams(config, pageid, folderpath);
             var tokenName = 'X-' + config.csrf.name;
             // var fieldName = field.querySelector('input.imagereference_value').getAttribute('name');
             var headers = {};
@@ -131,7 +122,7 @@ var InputfieldImageReference = {
                     browserBackButtonClose: true
                 })
                 .use(Uppy.Xhr, {
-                    endpoint: postUrl,
+                    endpoint: url,
                     method: 'post',
                     formData: true,
                     fieldName: 'uppyfiles[]',
@@ -141,10 +132,50 @@ var InputfieldImageReference = {
                 .on('complete', result => {
                     // console.log('successful files:', result.successful)
                     // console.log('failed files:', result.failed)
-                    InputfieldImageReference.fetchAndInsertThumbnails(getUrl, thumbnav, field)
+                    InputfieldImageReference.fetchAndInsertThumbnails(url, data, thumbnav);
                 });
             uppy.getPlugin('Dashboard').openModal();
 
+        });
+    },
+    initDeleteImagesFolder: function (field) {
+        var thumbnav = field.querySelector('.uk-thumbnav.imagereference_thumbs_folder');
+        if (!thumbnav) return;
+        $(field).on("click", '.uk-thumbnav .imagereference_deleteimage', function (event) {
+            var link = event.target;
+            var image = link.nextElementSibling;
+            var fieldname = field.querySelector('.imagereference_value').getAttribute('data-fieldname');
+            var folderpath = thumbnav.getAttribute('data-folderpath');
+            var filename = image.getAttribute('data-filename');
+            ProcessWire.confirm('Do you really want to delete image ' + filename + ' from folder ' + folderpath + '?', function () {
+                var config = InputfieldImageReference.getFieldconfig(field);
+                var url = config.url;
+                var data = {
+                    'deleteimage': filename,
+                    'fieldname': fieldname
+                };
+                InputfieldImageReference.xhrRequest(url, data)
+                    .done(function (data) {
+                        var message;
+                        if (data.message) {
+                            var params = InputfieldImageReference.buildParams(config, 0, folderpath);
+                            InputfieldImageReference.fetchAndInsertThumbnails(url, params, thumbnav);
+                            message = data.message;
+                        } else if (data.error) {
+                            message = data.error;
+                        }
+                        ProcessWire.alert({
+                            unsafeMessage: message
+                        });
+                    });
+            });
+        });
+    },
+    xhrRequest: function (url, params) {
+        return $.ajax({
+            type: 'GET',
+            url: url,
+            data: params
         });
     },
     initSelectAnyPage: function (field) {
@@ -161,9 +192,9 @@ var InputfieldImageReference = {
                 return;
             }
             var config = InputfieldImageReference.getFieldconfig(field);
-            var url = InputfieldImageReference.buildUrl(config, pageid, null);
+            var params = InputfieldImageReference.buildParams(config, pageid, null);
             var selectedTitle = wrapAnypage.querySelector('.PageListSelectName');
-            InputfieldImageReference.fetchAndInsertThumbnails(url, thumbnav);
+            InputfieldImageReference.fetchAndInsertThumbnails(config.url, params, thumbnav);
             thumbholderLabel.innerHTML = selectedTitle.innerHTML;
             thumbsField.classList.add('in');
         });
@@ -179,16 +210,18 @@ var InputfieldImageReference = {
     getFieldconfig: function (field) {
         return config = ProcessWire.config.InputfieldImageReference[field.querySelector('input').getAttribute('data-fieldname')];
     },
-    buildUrl: function (config, pageid, folderpath) {
-        var imagesfields = config.imagesfields;
-        var url = config.url + '&pageid=' + pageid;
-        if (imagesfields.length && !folderpath) {
-            for (let index = 0; index < imagesfields.length; index++) {
-                url += '&imagesfields[' + index + ']=' + imagesfields[index];
+    buildParams: function (config, pageid, folderpath) {
+        var data = {};
+        data['pageid'] = pageid;
+        if (config.imagesfields.length && !folderpath) {
+            var fields = [];
+            for (let index = 0; index < config.imagesfields.length; index++) {
+                fields[index] = config.imagesfields[index];
             }
+            data['imagesfields'] = fields;
         }
-        if (folderpath) url += '&folderpath=' + folderpath;
-        return url;
+        if (folderpath) data.folderpath = folderpath;
+        return data;
     }
 }
 
