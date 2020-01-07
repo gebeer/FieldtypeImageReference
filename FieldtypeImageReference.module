@@ -79,7 +79,11 @@ class FieldtypeImageReference extends Fieldtype
      */
     public function sanitizeValue(Page $page, Field $field, $value)
     {
-        // if it's not a json string, then return a json string with empty values
+        // setting value via API as PageImage: convert PageImage object to JSON string value 
+        if($value instanceof PageImage) {
+            $value = $this->toJson($value->page->id, basename($value->filename));
+        }
+        // if it's not a valid json string, then return a json string with empty values
         $obj = json_decode($value);
         if (!isset($obj->pageid) && !isset($obj->filename)) return $this->toJson();
 
