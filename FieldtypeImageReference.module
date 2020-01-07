@@ -363,18 +363,7 @@ class FieldtypeImageReference extends Fieldtype
         );
 
         if ($field->id) $this->updateDatabaseSchema($field, $schema);
-        // running this here instead of in ___upgrade() because it somehow doesn't run there
-        if ($this->getModuleInfo()['version'] <= 114 && !empty($field->imagesfieldspage)) {
-            foreach ($this->wire('fields') as $field) {
-                if (!$frompagefields = $field->get('imagesfieldspage')) continue;
-                // @todo for some reason this code does not run
-                $fields = array_unique(array_merge($frompagefields, $field->get('imagesfields')));
-                $field->set('imagesfields', $fields);
-                $field->set('imagesfieldspage', array());
-                $field->save();
-                $this->wire('log')->save('modules', "updated field {$field->name} settings");
-            }
-        }
+
         return $schema;
     }
 
@@ -667,12 +656,12 @@ class FieldtypeImageReference extends Fieldtype
 
         /** @var Field $f */
         $f = $this->modules->get('InputfieldCheckbox');
-        $f->attr('name', 'frompage');
+        $f->attr('name', 'fromeditpage');
         $f->label2 = $this->_("Pick from the page being edited?");
         $f->skipLabel(4);
         $f->description = $this->_('Images from the page that is being edited, will be supplied. The page must have an images field for this option to work.');
-        $f->attr('checked', $field->frompage ? 'checked' : '');
-        $f->attr('value', $field->frompage);
+        $f->attr('checked', $field->fromeditpage ? 'checked' : '');
+        $f->attr('value', $field->fromeditpage);
         $wrapper->add($f);
 
         $sourceswrapper->add($wrapper);
@@ -696,7 +685,7 @@ class FieldtypeImageReference extends Fieldtype
         $inputfields->add($sourceswrapper);
 
         /* image fields settings */
-        if ($field->imagespage || $field->frompage || $field->anypage) {
+        if ($field->imagespage || $field->fromeditpage || $field->anypage) {
             $imagefieldswrapper = new InputfieldFieldset;
             $imagefieldswrapper->label = $this->_("Choose Image fields");
 
@@ -704,8 +693,8 @@ class FieldtypeImageReference extends Fieldtype
             $f = $this->modules->get('InputfieldCheckboxes');
             $f->attr('name', 'imagesfields');
             $f->optionColumns = 1;
-            // $f->showIf('imagespage|frompage!=""');
-            // $f->requiredIf('imagespage|frompage!=""');
+            // $f->showIf('imagespage|fromeditpage!=""');
+            // $f->requiredIf('imagespage|fromeditpage!=""');
             $f->label = $this->_("Choose image fields that supply images");
             $f->description = $this->_('Images from these fields will be supplied to the image picker.');
             $f->required(1);

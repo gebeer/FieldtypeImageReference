@@ -149,7 +149,7 @@ class ImageReferenceHookHelper extends WireData implements Module
                     $pages->add($p->children('include=all'));
                 }
             }
-            if($field->frompage) $pages->add($editPage);
+            if($field->fromeditpage) $pages->add($editPage);
         }
         return $pages->explode('id');
     }

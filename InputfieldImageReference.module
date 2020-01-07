@@ -128,7 +128,7 @@ class InputfieldImageReference extends Inputfield implements Module
         $editPageUrl = ($this->process == 'ProcessPageEdit') ? $this->wire('pages')->get($this->wire('input')->id)->editUrl : $this->page->url;
         $url = ($this->process == 'ProcessPageEdit') ? $editPageUrl . "&{$this->className}=1" : $editPageUrl . "?{$this->className}=1";
         // $url .= "&field={$this->name}";
-        $imagesfields = ($this->frompages || $this->frompage || $this->anypage) ? $this->imagesfields : array();
+        $imagesfields = ($this->frompages || $this->fromeditpage || $this->anypage) ? $this->imagesfields : array();
         // set allowed file extensions for images uploaded to folder
         if ($this->fromfolder && $this->allowed_extensions) {
             $allowedFiletypes = array_map(function ($el) {
@@ -296,7 +296,7 @@ class InputfieldImageReference extends Inputfield implements Module
         $pageid = (int) wireDecodeJSON($this->attr('value'))['pageid'];
         if ( // pageid of stored image is not thet of editPage or one of the imagepages
             ($pageid !== 0)
-            && ($this->frompage && $this->hasPage && $this->hasPage->id != $pageid)
+            && ($this->fromeditpage && $this->hasPage && $this->hasPage->id != $pageid)
             && (!$this->imagePages->has($this->wire('pages')->get($pageid)))
         ) $value = $pageid;
 
@@ -467,7 +467,7 @@ class InputfieldImageReference extends Inputfield implements Module
             }
         }
         // editPage: page the field lives on
-        if ($this->frompage && $this->hasPage && !empty($this->getImageFields($this->hasPage))) $pages->add($this->hasPage);
+        if ($this->fromeditpage && $this->hasPage && !empty($this->getImageFields($this->hasPage))) $pages->add($this->hasPage);
         return $pages;
     }
 
@@ -479,7 +479,7 @@ class InputfieldImageReference extends Inputfield implements Module
      */
     public function getPageImages($page)
     {
-        // $imagefields = ($this->frompage && $page == $this->hasPage) ? $this->getImageFields($this->hasPage) : $this->getImageFields($page);
+        // $imagefields = ($this->fromeditpage && $page == $this->hasPage) ? $this->getImageFields($this->hasPage) : $this->getImageFields($page);
         $imagefields = $this->getImageFields($page);
         $images =  new Pageimages($page);
         foreach ($imagefields as $field) {
@@ -499,7 +499,7 @@ class InputfieldImageReference extends Inputfield implements Module
         if ($value->pageid && $value->filename) {
             // get image from imagespage or editPage
             $imagefields = array();
-            if ($this->frompage && $this->hasPage && ($value->pageid == $this->hasPage->id)) { // get image from editPage
+            if ($this->fromeditpage && $this->hasPage && ($value->pageid == $this->hasPage->id)) { // get image from editPage
                 $imagefields = $this->getImageFields($this->hasPage);
             } else { // get image from imagespage
                 $imagefields = $this->getImageFields($this->pages->get($value->pageid));
