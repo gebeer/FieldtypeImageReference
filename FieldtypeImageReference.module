@@ -362,6 +362,14 @@ class FieldtypeImageReference extends Fieldtype
             )
         );
 
+        /**
+         * added this to fix error: Field [fieldname] is not saveable because it is in a specific context 
+         * error appears when field is inside a repeater
+         * Fix taken from https://github.com/processwire/processwire-issues/issues/512
+         * in commit https://github.com/processwire/processwire/commit/0aefc2baa3a31fbbbcc0274a5002b4703e52192a
+         */
+        if($field->flags & Field::flagFieldgroupContext) $field = $this->wire('fields')->get($field->name);
+        
         if ($field->id) $this->updateDatabaseSchema($field, $schema);
 
         return $schema;
