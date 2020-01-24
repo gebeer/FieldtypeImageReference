@@ -92,6 +92,12 @@ $page->fieldname->svgcontent
 // search pages with image by file name or page id of the source page
 $pages->find('fieldname.filename=xyz.png');
 $pages->find('fieldname.pageid=1234');
+// set image via API
+$p = $pages->get(1001);
+$image = $p->image; // returns a Pageimage object
+$p->of(false);
+$p->set('imagereference', $image); // sets the Pageimage object to the ImageReference field. This gets converted to a JSON string internally for storage
+$p->save();
 ```
 
 ### Requirements
