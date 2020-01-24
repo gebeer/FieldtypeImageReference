@@ -576,7 +576,6 @@ class InputfieldImageReference extends Inputfield implements Module
      * @return string JSON response
      */
     public function deleteImageFromFolder($basename, $fieldname) {
-        header('Content-type: application/json');
         $response = new \stdClass;
         $field = $this->wire('fields')->get($fieldname);
         // check if this image is used on any other page with this field
@@ -588,8 +587,14 @@ class InputfieldImageReference extends Inputfield implements Module
                 $page = $page->getForPage();
                 $repeater = '(repeater field)';
             }
+            /** 
+             * call to editUrl throws a Notice: Trying to get property 'template' of non-object in /var/www/pw.local/wire/core/Page.php on line 3320 
+             * so we don't offer edit-link to Page for the moment
+             */
+            // $editUrl = ($page->editable()) ? $page->editUrl() : '';
+            // $editString = ($editUrl) ? "<br><a href='{$editUrl}&field={$fieldname}'>Edit page {$page->title}</a>" : '';
             $response->error = sprintf($this->_('Cannot delete image because it is used on page %1$s in field %2$s %3$s'), $page->title, $fieldname, $repeater);
-            $response->error .= '<br>' . sprintf($this->_('You need to remove the image first %s'), "<br><a href='{$page->editUrl}&field={$fieldname}'>Edit page {$page->title}</a>");
+            // $response->error .= '<br>' . sprintf($this->_('You need to remove the image first %s'), $editString);
         } else {
             $folderpath = FieldtypeImageReference::getBasePath($field->get('folderpath'));
             try {
@@ -599,9 +604,10 @@ class InputfieldImageReference extends Inputfield implements Module
                     $response->error = sprintf($this->_('Cannot delete Image %s'), $basename);
                 }
             } catch (\Throwable $th) {
-                $response->error = sprintf($this->_('An error occured %s'), $th->getMessage());
+                $response->error = sprintf($this->_('An error occured: %s'), $th->getMessage());
             }
         }
+        header('Content-type: application/json');
         echo json_encode($response);
         exit();
     }
