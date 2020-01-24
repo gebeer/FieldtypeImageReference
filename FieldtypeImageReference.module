@@ -179,6 +179,10 @@ class FieldtypeImageReference extends Fieldtype
             $pageimage = new Pageimage($pageimages, $file);
             $variation = $pageimage->isVariation(pathinfo($file, PATHINFO_BASENAME), array('allowSelf' => true, 'verbose' => false));
             if ($variation) continue; // add only originals
+            // Pagimage sanitizes filenames. So we have to rename all files in folder to match the sanitized name
+            if ($pageimage->filename != $file) {
+                wire('files')->rename($file, $pageimage->basename, array('throw' => true));
+            }
             if (strtolower($pageimage->ext) == 'svg') $pageimage->set('svgcontent', FieldtypeImageReference::getFileContent($pageimage)); // if svg, add custom property
             $pageimages->add($pageimage);
         }
