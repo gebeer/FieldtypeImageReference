@@ -46,6 +46,12 @@ class FieldtypeImageReference extends Fieldtype
     }
 
     /**
+     * possible parent folders
+     *
+     */
+    static public $parentFolders = array();
+
+    /**
      * Include classes for virtual page
      * virtual pageimages on that page serve as value for images from folders
      *
@@ -54,6 +60,10 @@ class FieldtypeImageReference extends Fieldtype
     {
         // require_once(dirname(__FILE__) . '/ImageReferenceFile.php');
         require_once(dirname(__FILE__) . '/ImageReferenceVirtualpage.php');
+        self::$parentFolders = array(
+            array('path' => $this->wire('config')->paths->templates, 'url' => $this->wire('config')->urls->templates),
+            array('path' => $this->wire('config')->paths->assets, 'url' => $this->wire('config')->urls->assets)
+        );
     }
 
     /**
@@ -79,9 +89,20 @@ class FieldtypeImageReference extends Fieldtype
      */
     public function sanitizeValue(Page $page, Field $field, $value)
     {
-        // setting value via API as PageImage: convert PageImage object to JSON string value 
-        if($value instanceof PageImage) {
+        /**
+         * setting value via API as PageImage
+         * convert PageImage object to JSON string value
+         */
+        $orgValue = $value;
+        if ($value instanceof PageImage) {
             $value = $this->toJson($value->page->id, basename($value->filename));
+            if ((int) $orgValue->page->id === 0) {
+                /**
+                 * image is coming from a folder
+                 * copy image to folder of this field if it does not already exist
+                 */
+                $this->copyImageToFolder($orgValue->filename, $field->folderpath);
+            }
         }
         // if it's not a valid json string, then return a json string with empty values
         $obj = json_decode($value);
@@ -177,6 +198,7 @@ class FieldtypeImageReference extends Fieldtype
         $fileUrl = self::getFileUrl($field->folderpath, $value->filename);
         if (file_exists($filePath)) return $filePath;
         $field->getInputfield($page)->error("File does not exist: {$fileUrl}");
+        return null;
     }
 
     /**
@@ -187,8 +209,9 @@ class FieldtypeImageReference extends Fieldtype
      */
     static public function getBasePath($folderpath)
     {
-        if (file_exists(wire('config')->paths->templates . $folderpath)) return wire('config')->paths->templates . $folderpath;
-        if (file_exists(wire('config')->paths->assets . $folderpath)) return wire('config')->paths->assets . $folderpath;
+        foreach (self::$parentFolders as $parent) {
+            if (file_exists($parent['path'] . $folderpath)) return $parent['path'] . $folderpath;
+        }
     }
 
     /**
@@ -199,20 +222,23 @@ class FieldtypeImageReference extends Fieldtype
      */
     static public function getBaseUrl($folderpath)
     {
-        if (file_exists(wire('config')->paths->templates . $folderpath)) return wire('config')->urls->templates . $folderpath;
-        if (file_exists(wire('config')->paths->assets . $folderpath)) return wire('config')->urls->assets . $folderpath;
+        foreach (self::$parentFolders as $parent) {
+            if (file_exists($parent['path'] . $folderpath)) return $parent['url'] . $folderpath;
+        }
     }
 
     /**
      * Return file URL
      * @param string $folderpath relative path to folder
      * @param string $basename file basename
-     * @return string 
+     * @return mixed string|null file url if file exists, null otherwise 
      */
     static public function getFileUrl($folderpath, $basename)
     {
-        if (file_exists(wire('config')->paths->templates . $folderpath)) return $this->wire('config')->urls->templates . $folderpath . $basename;
-        if (file_exists(wire('config')->paths->assets . $folderpath)) return $this->wire('config')->urls->assets . $folderpath . $basename;
+        foreach (self::$parentFolders as $parent) {
+            if (file_exists($parent['path'] . $folderpath . $basename)) return $parent['url'] . $folderpath . $basename;
+        }
+        return null;
     }
 
     /**
@@ -331,6 +357,22 @@ class FieldtypeImageReference extends Fieldtype
     }
 
     /**
+     * copies $sourceFile to $folderpath if it doesn't exist there
+     * required when image value set via API and image is coming from a different field with different destination folder setting
+     *
+     * @param string $sourceFile full path to source file
+     * @param string $folderpath
+     * @return void
+     */
+    public function copyImageToFolder($sourceFile, $folderpath) {
+        if(self::getFileUrl($folderpath, basename($sourceFile))) return; // image already exists in folder
+        $destFile = self::getBasePath($folderpath) . basename($sourceFile);
+        if(!file_exists($destFile)) {
+            if(!copy($sourceFile, $destFile)) $this->wire('log')->error("Could not copy {$sourceFile} to {$destFile}");
+        }  
+    }
+
+    /**
      * Return the database schema in specified format
      * 
      * @param Field $field
@@ -372,8 +414,8 @@ class FieldtypeImageReference extends Fieldtype
          * Fix taken from https://github.com/processwire/processwire-issues/issues/512
          * in commit https://github.com/processwire/processwire/commit/0aefc2baa3a31fbbbcc0274a5002b4703e52192a
          */
-        if($field->flags & Field::flagFieldgroupContext) $field = $this->wire('fields')->get($field->name);
-        
+        if ($field->flags & Field::flagFieldgroupContext) $field = $this->wire('fields')->get($field->name);
+
         if ($field->id) $this->updateDatabaseSchema($field, $schema);
 
         return $schema;
@@ -550,11 +592,11 @@ class FieldtypeImageReference extends Fieldtype
         $errorfolder = false;
         if ($field->fromfolder && $field->folderpath) {
             $folderpath = ltrim($field->folderpath, '/');
-            if(file_exists($this->config->paths->templates . $folderpath)) {
+            if (file_exists($this->config->paths->templates . $folderpath)) {
                 $folder = $this->config->paths->templates . $folderpath;
                 $path = $this->config->urls->templates . $folderpath;
             };
-            if(file_exists($this->config->paths->assets . $folderpath)) {
+            if (file_exists($this->config->paths->assets . $folderpath)) {
                 $folder = $this->config->paths->assets . $folderpath;
                 $path = $this->config->urls->assets . $folderpath;
             };
