@@ -798,8 +798,13 @@ class FieldtypeImageReference extends Fieldtype
         All properties and methods for Pageimage can be used (resizing, cropping etc.)<br>
         $thumb = $page->' . $field->name . '->width(100)<br><br>
         Field is fully searchable for image filename by API<br>
-        $pages->find("' . $field->name . '.filename=xyz.png")
-        </code>');
+        $pages->find("' . $field->name . '.filename=xyz.png")<br><br>
+        // set an image via API<br>
+        $p = $pages->get(1001);<br>
+        $image = $p->image; // returns a Pageimage object<br>
+        $p->of(false);<br>
+        $p->set('. $field->name . ', $image); // sets the Pageimage object to the ImageReference field. This gets converted to a JSON string internally for storage<br>
+        $p->save();</code>');
         $inputfields->add($f);
 
         return $inputfields;
