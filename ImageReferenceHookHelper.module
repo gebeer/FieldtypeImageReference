@@ -15,7 +15,7 @@ class ImageReferenceHookHelper extends WireData implements Module
     {
         return array(
             'title' => 'Hook Helper Module for FieldtypeImageReference',
-            'version' => 211,
+            'version' => 212,
             'summary' => __('Adds hooks to Pagefiles to restrict deletion of images that are used by FieldtypeImageReference.'),
             'author' => 'Gerhard Sitzmann',
             'href' => '',
