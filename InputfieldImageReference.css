@@ -7,10 +7,14 @@
     margin-bottom: 20px;
 }
 
-.InputfieldImageReference .uk-thumbnav img {
-    cursor: pointer;
+.InputfieldImageReference img {
+    max-width: 100%;
+    height: auto;
 }
 
+.InputfieldImageReference .uk-thumbnav img {
+    cursor: pointer;
+}    
 .InputfieldImageReference .uk-panel {
     border: 1px solid #d9e1ea;
     padding: 25px;

@@ -201,8 +201,8 @@ class InputfieldImageReference extends Inputfield implements Module
         $info = ($image) ? $this->renderTooltip($image) : '';
         $out = "<div class='uk-panel uk-panel-box uk-margin-bottom'>
         <span class='fa fa-trash' uk-tooltip='title: Remove Image'></span>
-        <img src='{$url}' style='width: {$previewWidth}px; max-width: {$previewWidth}px' data-src='{$blankSrc}'>
-        <div class='uk-thumbnail-caption' style='max-width: {$previewWidth}px'>{$info}</div>";
+        <img src='{$url}' style='width: {$previewWidth}px;' data-src='{$blankSrc}'>
+        <div class='uk-thumbnail-caption' style='width: {$previewWidth}px'>{$info}</div>";
         $out .= "</div>";
 
         return $out;
@@ -393,7 +393,7 @@ class InputfieldImageReference extends Inputfield implements Module
             $markup .= "<li class='uk-thumbnail uk-thumbnail-mini uk-panel'>";
             if ($pageid === 0 && $this->user->hasPermission('imagereference-folder-delete'))
                 $markup .= "<span class='fa fa-trash imagereference_deleteimage' uk-tooltip='title: Delete Image'></span>";
-            $markup .= "<img style='max-width: {$thumbWidth}px; width: {$thumbWidth}px' data-pageid='{$pageid}' data-filename='{$img->basename}' src='{$img->width($previewWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
+            $markup .= "<img style='width: {$thumbWidth}px' data-pageid='{$pageid}' data-filename='{$img->basename}' src='{$img->width($previewWidth)->url}' alt='{$img->basename}'  uk-tooltip title='{$tooltip}' data-title='{$tooltip}'>
             </li>";
         }
         return $markup;
