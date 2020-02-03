@@ -66,8 +66,9 @@ class InputfieldImageReference extends Inputfield implements Module
         // render thumbnails for ajax request
         if (isset($input->pageid)) {
             if ($input->folderpath) {
-                $this->set('folderpath', $input->folderpath);
-                $out = $this->getThumbnailsForFolder($input->folderpath);
+                $folderPath = trim($input->folderpath, '/') . '/';
+                $this->set('folderpath', $folderPath);
+                $out = $this->getThumbnailsForFolder($folderPath);
             } elseif ($input->imagesfields) {
                 $this->set('imagesfields', $input->imagesfields); // populate imagesfields to make required methods work
                 $out = $this->getThumbnailsForPage($input->pageid);

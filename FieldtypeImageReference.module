@@ -65,7 +65,7 @@ class FieldtypeImageReference extends Fieldtype
             array('path' => $this->wire('config')->paths->assets, 'url' => $this->wire('config')->urls->assets)
         );
     }
-
+    
     /**
      * Return all compatible Fieldtypes 
      * 
@@ -595,7 +595,7 @@ class FieldtypeImageReference extends Fieldtype
 
         $errorfolder = false;
         if ($field->fromfolder && $field->folderpath) {
-            $folderpath = ltrim($field->folderpath, '/');
+            $folderpath = trim($field->folderpath, '/') . '/';
             if (file_exists($this->config->paths->templates . $folderpath)) {
                 $folder = $this->config->paths->templates . $folderpath;
                 $path = $this->config->urls->templates . $folderpath;
@@ -670,7 +670,7 @@ class FieldtypeImageReference extends Fieldtype
         $f = $this->modules->get('InputfieldText');
         $f->attr('name', 'folderpath');
         $f->label = $this->_("The folder containing the images.");
-        $f->attr('value', $field->folderpath);
+        $f->attr('value', trim($field->folderpath, '/') . '/');
         $f->description = sprintf($this->_('A path relative to the **%1$s** or **%2$s**'), $this->config->urls->templates, $this->config->urls->assets);
         $f->notes = $this->_("When the files are located in /site/templates/images/icons/, type: images/icons/");
         $f->notes .= ' ' . $this->_("When the files are located in /site/assets/icons/, type: icons/");
