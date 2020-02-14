@@ -165,7 +165,7 @@ class ImageReferenceHookHelper extends WireData implements Module
         $fields = array();
         foreach ($this->wire('fields') as $f) {
             if (!$f->type instanceof FieldtypeImageReference) continue;
-            if (in_array($fieldName, $f->imagesfields) || in_array($fieldName, $f->imagesfieldspage)) $fields[] = $f;
+            if (( !empty($f->imagesfields) && in_array($fieldName, $f->imagesfields) ) ||(!empty($f->imagesfieldspage) && in_array($fieldName, $f->imagesfieldspage ))) $fields[] = $f;
         }
         return $fields;
     }
