@@ -434,7 +434,7 @@ class InputfieldImageReference extends Inputfield implements Module
         foreach ($page->fields as $field) {
             if (!$field->type instanceof FieldtypeImage) continue;
             if (!in_array($field->name, $this->imagesfields)) continue;
-            if (!$page->editable($field->name)) continue;
+            // if (!$page->editable($field->name)) continue; // remove, so editors without page edit permission for the image page can still choose images
             if ($excludeFullFields && $field->maxFiles > 0) {
                 if (count($page->get($field->name)) >= $field->maxFiles) continue;
             }
