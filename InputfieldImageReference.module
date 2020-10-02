@@ -123,8 +123,9 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         parent::renderReady();
         $config = $this->wire('config');
+        $name = ($this->hasField) ? $this->hasField->name : $this->name;
         // populate config js
-        if (isset($config->js($this->className)[$this->hasField->name])) return; // config js already populated for this field
+        if (isset($config->js($this->className)[$name])) return; // config js already populated for this field
 
         $editPageUrl = ($this->process == 'ProcessPageEdit') ? $this->wire('pages')->get($this->wire('input')->id)->editUrl : $this->page->url;
         $url = ($this->process == 'ProcessPageEdit') ? $editPageUrl . "&{$this->className}=1" : $editPageUrl . "?{$this->className}=1";
@@ -141,7 +142,7 @@ class InputfieldImageReference extends Inputfield implements Module
         // set max file size in bytes for images uploaded to folder
         $maxFileSize = ($this->fromfolder && $this->maxSize) ? (float) trim(str_replace('MB', '', $this->maxSize)) * 1024 * 1024 : null;
         $fieldConfig = array(
-            $this->hasField->name => array(
+            $name => array(
                 'url' => $url, // $this->ajaxURL,
                 'imagesfields' => $imagesfields,
                 'csrf' => array('name' => $this->wire('session')->CSRF->getTokenName(), 'value' => $this->wire('session')->CSRF->getTokenValue()),
@@ -213,7 +214,7 @@ class InputfieldImageReference extends Inputfield implements Module
     {
         $value = FieldtypeImageReference::toJson($value->pageid, $value->filename);
         return "<div>
-        <input type='hidden' class='imagereference_value' name='{$name}' id='{$name}' value='{$value}' data-fieldname='{$this->hasField->name}' \>
+        <input type='hidden' class='imagereference_value' name='{$name}' id='{$name}' value='{$value}' data-fieldname='{$this->name}' \>
         </div>";
     }
 
@@ -222,6 +223,7 @@ class InputfieldImageReference extends Inputfield implements Module
         $wrapper = new InputfieldWrapper;
         $wrapper->attr('id', 'imagereference_thumbs');
         foreach ($this->imagePages as $p) $wrapper->add($this->renderThumbnailsForPage($p));
+        bd($this->folderpath);
         if ($this->fromfolder && $this->folderpath) $wrapper->add($this->renderThumbnailsForFolder($this->folderpath));
         if ($this->anypage) $wrapper->add($this->pickFromAnyPage());
 
