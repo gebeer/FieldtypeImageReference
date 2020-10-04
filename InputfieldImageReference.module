@@ -223,7 +223,7 @@ class InputfieldImageReference extends Inputfield implements Module
         $wrapper = new InputfieldWrapper;
         $wrapper->attr('id', 'imagereference_thumbs');
         foreach ($this->imagePages as $p) $wrapper->add($this->renderThumbnailsForPage($p));
-        bd($this->folderpath);
+        // bd($this->folderpath);
         if ($this->fromfolder && $this->folderpath) $wrapper->add($this->renderThumbnailsForFolder($this->folderpath));
         if ($this->anypage) $wrapper->add($this->pickFromAnyPage());
 
